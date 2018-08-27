@@ -1,0 +1,63 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="CurThread.h">
+      <Filter>net</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="Socket.cpp">
+      <Filter>net</Filter>
+    </ClCompile>
+    <ClCompile Include="EventLoop.cpp">
+      <Filter>net</Filter>
+    </ClCompile>
+    <ClCompile Include="Channel.cpp">
+      <Filter>net</Filter>
+    </ClCompile>
+    <ClCompile Include="Poller.cpp">
+      <Filter>net</Filter>
+    </ClCompile>
+    <ClCompile Include="Acceptor.cpp">
+      <Filter>net</Filter>
+    </ClCompile>
+    <ClCompile Include="Server.cpp">
+      <Filter>net</Filter>
+    </ClCompile>
+    <ClCompile Include="msg.cpp" />
+    <ClCompile Include="ChatServer.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="msg.h" />
+    <ClInclude Include="user.h" />
+    <ClInclude Include="Socket.h">
+      <Filter>net</Filter>
+    </ClInclude>
+    <ClInclude Include="NetAddress.h">
+      <Filter>net</Filter>
+    </ClInclude>
+    <ClInclude Include="EventLoop.h">
+      <Filter>net</Filter>
+    </ClInclude>
+    <ClInclude Include="Channel.h">
+      <Filter>net</Filter>
+    </ClInclude>
+    <ClInclude Include="Poller.h">
+      <Filter>net</Filter>
+    </ClInclude>
+    <ClInclude Include="Acceptor.h">
+      <Filter>net</Filter>
+    </ClInclude>
+    <ClInclude Include="TcpConnetion.h">
+      <Filter>net</Filter>
+    </ClInclude>
+    <ClInclude Include="Server.h">
+      <Filter>net</Filter>
+    </ClInclude>
+    <ClInclude Include="ChatServer.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="net">
+      <UniqueIdentifier>{77590c54-6985-4d2b-b77e-e3707880e78b}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
