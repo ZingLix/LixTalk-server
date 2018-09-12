@@ -11,7 +11,7 @@ public:
 	Socket();
 	explicit Socket(const int sockfd);
 	~Socket();
-	void bind(NetAddress& addr) const ;
+	void bind(NetAddress& addr) const;
 	void bind(const char* ip, in_port_t port) const;
 	void bind(in_port_t port)const;
 	void bind(const sockaddr_in&) const;
@@ -20,10 +20,9 @@ public:
 	int connect(NetAddress* addr) const;
 	void close();
 	static void close(int fd);
-	static void shutdown(int fd);
 
 	int fd() const { return sock_fd_; }
-	static void send(const int fd,std::string msg) {
+	static void send(const int fd, std::string msg) {
 		::write(fd, &*msg.begin(), msg.length());
 	}
 private:
@@ -38,5 +37,3 @@ inline sockaddr* sockaddr_cast(sockaddr_in* sock_in) {
 	return reinterpret_cast<sockaddr*>(sock_in);
 }
 #endif
-
-

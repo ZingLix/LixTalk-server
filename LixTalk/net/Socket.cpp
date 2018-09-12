@@ -6,12 +6,9 @@
 
 Socket::Socket() {
 	sock_fd_ = ::socket(AF_INET, SOCK_STREAM, 0);
-	int opt = 1;
-	setsockopt(sock_fd_, SOL_SOCKET, SO_REUSEADDR,
-		(const void *)&opt, sizeof(opt));
 }
 
-Socket::Socket(const int sockfd):sock_fd_(sockfd) {}
+Socket::Socket(const int sockfd) :sock_fd_(sockfd) {}
 
 Socket::~Socket() {
 	::close(sock_fd_);
@@ -19,14 +16,15 @@ Socket::~Socket() {
 
 void Socket::bind(NetAddress& addr) const {
 	int n = ::bind(sock_fd_, sockaddr_cast(addr.addr()), sizeof(*addr.addr()));
-	if(n==0) {
+	if (n == 0) {
 		printf("bind success!\n");
-	} else {
+	}
+	else {
 		printf("bind error!\n");
 	}
 }
 
-void Socket::bind(const char* ip, in_port_t port) const{
+void Socket::bind(const char* ip, in_port_t port) const {
 	NetAddress addr(ip, port);
 	bind(addr);
 }
@@ -42,7 +40,7 @@ void Socket::bind(in_port_t port) const {
 }
 
 void Socket::listen(int backlog) const {
-	if(::listen(sock_fd_, backlog)!=0) {
+	if (::listen(sock_fd_, backlog) != 0) {
 		printf("listen error!\n");
 	}
 }
@@ -51,7 +49,7 @@ int Socket::accept(NetAddress* addr) const {
 	struct sockaddr_in add;
 	bzero(&add, sizeof(add));
 	socklen_t len = sizeof(add);
-	const int connfd = ::accept4(sock_fd_, sockaddr_cast(add), &len,SOCK_NONBLOCK|SOCK_CLOEXEC);
+	const int connfd = ::accept4(sock_fd_, sockaddr_cast(add), &len, SOCK_NONBLOCK | SOCK_CLOEXEC);
 	if (connfd >= 0)
 	{
 		addr->set(add);
@@ -64,7 +62,7 @@ int Socket::connect(NetAddress* addr) const {
 	bzero(&servaddr, sizeof(servaddr));
 	socklen_t len = sizeof(servaddr);
 	int connfd = ::connect(sock_fd_, sockaddr_cast(servaddr), len);
-	if(connfd>=0) {
+	if (connfd >= 0) {
 		addr->set(servaddr);
 	}
 	return connfd;
@@ -77,8 +75,4 @@ void Socket::close() {
 
 void Socket::close(int fd) {
 	::close(fd);
-}
-
-void Socket::shutdown(int fd) {
-	::shutdown(fd,SHUT_RDWR);
 }

@@ -76,12 +76,12 @@
     <ClInclude Include="Acceptor.h" />
     <ClInclude Include="Channel.h" />
     <ClInclude Include="ChatServer.h" />
+    <ClInclude Include="DbConnector.h" />
     <ClInclude Include="EventLoop.h" />
     <ClInclude Include="msg.h" />
     <ClInclude Include="NetAddress.h" />
     <ClInclude Include="Server.h" />
     <ClInclude Include="Socket.h" />
-    <ClInclude Include="TcpConnetion.h" />
     <ClInclude Include="user.h" />
     <ClInclude Include="Poller.h" />
   </ItemGroup>
@@ -89,6 +89,9 @@
     <ClCompile>
       <CppLanguageStandard>c++17</CppLanguageStandard>
     </ClCompile>
+    <Link>
+      <LibraryDependencies>mysqlcppconn</LibraryDependencies>
+    </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />

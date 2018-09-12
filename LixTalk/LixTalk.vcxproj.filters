@@ -20,11 +20,9 @@
     <ClCompile Include="Acceptor.cpp">
       <Filter>net</Filter>
     </ClCompile>
-    <ClCompile Include="Server.cpp">
-      <Filter>net</Filter>
-    </ClCompile>
     <ClCompile Include="msg.cpp" />
     <ClCompile Include="ChatServer.cpp" />
+    <ClCompile Include="Server.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="msg.h" />
@@ -47,13 +45,9 @@
     <ClInclude Include="Acceptor.h">
       <Filter>net</Filter>
     </ClInclude>
-    <ClInclude Include="TcpConnetion.h">
-      <Filter>net</Filter>
-    </ClInclude>
-    <ClInclude Include="Server.h">
-      <Filter>net</Filter>
-    </ClInclude>
     <ClInclude Include="ChatServer.h" />
+    <ClInclude Include="Server.h" />
+    <ClInclude Include="DbConnector.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="net">

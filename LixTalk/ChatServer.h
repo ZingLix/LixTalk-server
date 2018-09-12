@@ -2,6 +2,44 @@
 #define LIXTALK_CHATSERVER
 #include "Server.h"
 #include "user.h"
+#include "DbConnector.h"
+
+template<class T1,class T2>
+class DuplexMap
+{
+public:
+	DuplexMap() {}
+
+	void insert(T1 fd, T2 id) {
+		FdToId.insert(std::make_pair(fd, id));
+		IdToFd.insert(std::make_pair(id, fd));
+	}
+	void removeById(T2 id) {
+		int fd = IdToFd[id];
+		FdToId.erase(fd);
+		IdToFd.erase(id);
+	}
+	void removeByFd(T1 fd) {
+		int id = IdToFd[fd];
+		FdToId.erase(fd);
+		IdToFd.erase(id);
+	}
+	T1 getFd(T2 id) {
+		auto it = IdToFd.find(id);
+		if (it == IdToFd.end()) return -1;
+		return it->second;
+	}
+	T2 getId(T1 fd) {
+		auto it = FdToId.find(fd);
+		if (it == FdToId.end()) return -1;
+		return it->second;
+	}
+
+private:
+	std::map<T1, T2> FdToId;
+	std::map<T2, T1> IdToFd;
+};
+
 
 class ChatServer
 {
@@ -12,6 +50,8 @@ public:
 	}
 
 	void start() {
+		db_.connect("zinglix","password");
+//		cur_user_id = db_.getMaxUserID();
 		server_.start();
 	}
 
@@ -20,43 +60,13 @@ public:
 	void msgExec_err(int fd, std::string errMsg);
 	void msgExec_err_fatal(int fd, std::string errMsg);
 
-	bool onNewConn(int fd,const NetAddress& addr,Server* serv) {
-		server_.setMessageCallback(fd, std::bind(&ChatServer::waitingFirstMsg, this,
-			std::placeholders::_1, std::placeholders::_2, std::placeholders::_3 ));
-		return true;
-	}
+	bool onNewConn(int fd, const NetAddress& addr, Server* serv);
 
-	void waitingFirstMsg(int fd,std::string msg,Server* serv){
-		message m(msg);
-		if(m.getInt("recver_id")!=0) {
-			serv->send(fd,"Bad request!");
-			serv->shutdown(fd);
-		}else {
-			switch (m.getInt("type")) {
-			case 0:  //login request
-				msgExec_login(fd,m); break;
-			case 1:  //register request
-				msgExec_register(fd,m); break;
-			default:
-				msgExec_err(fd, "unknown type");
-			}
-		}
-	}
+	void waitingFirstMsg(int fd, std::string msg, Server* serv);
 
 	bool forwardMsg(int sender_id, int recver_id, std::string msg);
 
-	void recvMsg(int fd, std::string msg, Server* serv) {
-		message m(msg);
-		switch (m.getInt("type")) {
-		case 9:
-			if(forwardMsg(m.getInt("sender_id"), m.getInt("recver_id"),msg) ==false) {
-				server_.send(fd, "recver offline");
-			}
-			break;
-		default:
-			msgExec_err(fd, "unknown kype!");
-		}
-	}
+	void recvMsg(int fd, std::string msg, Server* serv);
 
 	void sendMsg(const int fd,std::string msg) {
 		server_.send(fd, msg);
@@ -66,10 +76,16 @@ public:
 		return rand();
 	}
 
+	int checkLoginInfo(message& msg);
+
 private:
+
+
 	std::map<int, user> userMap_;
-	std::map<int, int> socketMap_;
+	DuplexMap<int,int> socketMap_;
+//	int cur_user_id;
 	Server server_;
+	DbConnector db_;
 };
 
 

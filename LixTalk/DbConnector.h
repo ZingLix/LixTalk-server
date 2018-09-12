@@ -19,6 +19,22 @@ public:
 		con->setSchema("test");
 	} 
 
+	int getMaxUserID() {
+		sql::PreparedStatement *stmt = con->prepareStatement("SELECT Max(id) from user");
+		auto res = stmt->executeQuery();
+		delete stmt;
+		return res->getInt("id");
+	}
+
+	std::shared_ptr < sql::ResultSet > getUser(std::string username) {
+		std::shared_ptr< sql::Statement > stmt (con->createStatement());
+		//	stmt->setString(1, username);
+
+		stmt->execute("SELECT * from user where username = '"+username+"'");
+	//	std::cout<<stmt->getResultSet()->getString(1);
+		return std::shared_ptr < sql::ResultSet >(stmt->getResultSet());
+	}
+	
 	void addUser(std::string username, std::string password) {
 		sql::PreparedStatement *stmt = con->prepareStatement("INSERT INTO user(id,username,password) VALUES (null,?,?)");
 		stmt->setString(1, username);
