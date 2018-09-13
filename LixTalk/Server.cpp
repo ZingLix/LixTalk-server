@@ -86,7 +86,7 @@ void Server::handleRead(const int fd) {
 	if (Buffer.size() == 0) {
 		if (CloseCallback_) {
 			CloseCallback_(fd, this);
-			close(fd);
+			shutdown(fd);
 		}
 		event_loop_->removeChannel(&*channelMap_[fd]);
 	}else {
@@ -99,7 +99,7 @@ void Server::handleRead(const int fd) {
 void Server::send(const int fd, std::string msg) {
 	//Socket::send(fd, msg);
 	int n = ::write(fd, &*msg.begin(), msg.length());
-	std::cout << errno << std::endl;
+	//std::cout << errno << std::endl;
 }
 
 void Server::shutdown(int fd) {

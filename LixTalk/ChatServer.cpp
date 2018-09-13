@@ -3,6 +3,12 @@
 #include "rapidjson/writer.h"
 #include <iostream>
 
+ChatServer::ChatServer(in_port_t port): server_(port) {
+	server_.setNewConnCallback(std::bind(&ChatServer::onNewConn, this,
+	                                     std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+	server_.setCloseCallback([this](int id, Server* s) { this->logout(id); });
+}
+
 void ChatServer::msgExec_login(int fd, message& msg) {
 	int id = checkLoginInfo(msg);
 	if(id==-1) {
@@ -23,7 +29,10 @@ void ChatServer::msgExec_login(int fd, message& msg) {
 		rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
 		doc.Accept(writer);
 		std::string m = buffer.GetString();
+		std::cout << id << " login!" << std::endl;
 		server_.send(fd, m);
+		server_.setMessageCallback(fd, std::bind(&ChatServer::recvMsg, this,
+			std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 	}
 
 }
@@ -31,12 +40,23 @@ void ChatServer::msgExec_login(int fd, message& msg) {
 int ChatServer::checkLoginInfo(message& msg) {
 	std::string username = msg.getString("username");
 	auto userinfo = db_.getUser(username);
-	userinfo->next();
-	if(msg.getString("password")==userinfo->getString("password")) {
-		return userinfo->getInt("id");
-	}else {
+	try {
+		userinfo->next();
+		if (msg.getString("password") == userinfo->getString("password")) {
+			return userinfo->getInt("id");
+		}
+		else {
+			return -1;
+		}
+	}catch (sql::InvalidArgumentException) {
 		return -1;
 	}
+}
+
+void ChatServer::logout(int fd) {
+	std::cout << socketMap_.getId(fd) << " offline!" << std::endl;
+	socketMap_.removeByFd(fd);
+
 }
 
 
@@ -87,7 +107,6 @@ void ChatServer::msgExec_err(int fd, std::string errMsg) {
 	doc.Accept(writer);
 	std::string msg = buffer.GetString();
 	server_.send(fd, msg);
-	server_.shutdown(fd);
 }
 
 void ChatServer::waitingFirstMsg(int fd, std::string msg, Server* serv) {
@@ -127,7 +146,7 @@ void ChatServer::recvMsg(int fd, std::string msg, Server* serv) {
 	switch (m.getInt("type")) {
 		case 9:
 			if (forwardMsg(m.getInt("sender_id"), m.getInt("recver_id"), msg) == false) {
-				server_.send(fd, "recver offline");
+				msgExec_err(fd, "offline");
 			}
 			break;
 		default:

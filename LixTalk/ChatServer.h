@@ -20,7 +20,7 @@ public:
 		IdToFd.erase(id);
 	}
 	void removeByFd(T1 fd) {
-		int id = IdToFd[fd];
+		int id = FdToId[fd];
 		FdToId.erase(fd);
 		IdToFd.erase(id);
 	}
@@ -44,10 +44,7 @@ private:
 class ChatServer
 {
 public:
-	ChatServer(in_port_t port):server_(port) {
-		server_.setNewConnCallback(std::bind(&ChatServer::onNewConn, this,
-			std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-	}
+	ChatServer(in_port_t port);
 
 	void start() {
 		db_.connect("zinglix","password");
@@ -77,6 +74,7 @@ public:
 	}
 
 	int checkLoginInfo(message& msg);
+	void logout(int fd);
 
 private:
 
