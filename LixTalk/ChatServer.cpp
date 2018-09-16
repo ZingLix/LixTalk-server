@@ -122,6 +122,7 @@ void ChatServer::waitingFirstMsg(int fd, std::string msg, Server* serv) {
 			case 1: //register request
 				msgExec_register(fd, m);
 				break;
+
 			default:
 				msgExec_err(fd, "unknown type");
 		}
@@ -149,7 +150,65 @@ void ChatServer::recvMsg(int fd, std::string msg, Server* serv) {
 				msgExec_err(fd, "offline");
 			}
 			break;
+		case 3:
+			msgExec_friend(fd, m);
+			break;
 		default:
 			msgExec_err(fd, "unknown kype!");
 	}
+}
+
+//Friend Table
+//create table friend
+//	-> (
+//	->seqID int NOT NULL AUTO_INCREMENT,
+//	->userID_1 int NOT NULL,
+//	->userID_2 int NOT NULL,
+//	->groupID_in_1 int NOT NULL,
+//	->groupID_in_2 int NOT NULL,
+//	->addTime datetime not NULL,
+//	->PRIMARY KEY(seqID)
+//	->);
+
+void ChatServer::msgExec_friend(int fd, message& msg) {
+	std::string m = msg.getString();
+	switch (msg.getInt("code")) {
+		case 1:
+			friend_request(socketMap_.getId(fd), msg.getInt("recver_id"),msg.getString("content"));
+			break;
+		case 2:
+			friend_accepted(msg.getInt("sender_id"), msg.getInt("recver_id"));
+			break;
+		case 3:
+			friend_refused(msg.getInt("sender_id"), msg.getInt("recver_id"));
+			break;
+
+	}
+}
+
+void ChatServer::friend_request(int sender_id, int recver_id,std::string content) {
+	message m;
+	m.add("type", 3);
+	m.add("code", 1);
+	m.add("sender_id", sender_id);
+	m.add("recver_id", recver_id);
+	m.add("content", content);
+	sendMsg(socketMap_.getFd(recver_id), m.getString());
+}
+
+void ChatServer::friend_accepted(int user1_id, int user2_id) {
+	db_.addFriend(user1_id, user2_id);
+	message m;
+	m.add("type", 3);
+	m.add("code", 2);
+	m.add("recver_id", user2_id);
+	sendMsg(socketMap_.getFd(user1_id), m.getString());
+}
+
+void ChatServer::friend_refused(int user1_id, int user2_id) {
+	message m;
+	m.add("type", 3);
+	m.add("code", 3);
+	m.add("recver_id", user2_id);
+	sendMsg(socketMap_.getFd(user1_id), m.getString());
 }

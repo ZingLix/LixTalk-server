@@ -43,6 +43,13 @@ public:
 		delete stmt;
 	}
 
+	void addFriend(int userID_1,int userID_2) {
+		sql::PreparedStatement *stmt = con->prepareStatement("INSERT INTO friend(userID_1,userID_2) VALUES ("
+			+ std::to_string(userID_1) + " , " + std::to_string(userID_2) +")");
+		stmt->executeUpdate();
+		delete stmt;
+	}
+
 	~DbConnector() {
 		if(con!=nullptr)
 		delete con;

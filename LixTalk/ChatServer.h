@@ -56,7 +56,7 @@ public:
 	void msgExec_register(int fd, message& msg);
 	void msgExec_err(int fd, std::string errMsg);
 	void msgExec_err_fatal(int fd, std::string errMsg);
-
+	void msgExec_friend(int fd, message& msg);
 	bool onNewConn(int fd, const NetAddress& addr, Server* serv);
 
 	void waitingFirstMsg(int fd, std::string msg, Server* serv);
@@ -69,13 +69,12 @@ public:
 		server_.send(fd, msg);
 	}
 
-	int generateNewID() {
-		return rand();
-	}
-
 	int checkLoginInfo(message& msg);
 	void logout(int fd);
 
+	void friend_request(int sender_id, int recver_id,std::string content);
+	void friend_accepted(int user1_id, int user2_id);
+	void friend_refused(int user1_id, int user2_id);
 private:
 
 
