@@ -74,11 +74,10 @@ void Server::handleRead(const int fd) {
 	char buf[32];
 	while( (n = read(fd,buf,32) ) != 0 ) {
 		if (n == -1) {
-			if (errno == EAGAIN) {
-				break;
-			}else {
-				std::cout << "error! " << errno << std::endl;
+			if (errno != EAGAIN) {
+				std::cout << "error! " << errno << std::endl;	
 			}
+			break;
 		}
 		Buffer.insert(Buffer.end(), buf, buf + n);
 		

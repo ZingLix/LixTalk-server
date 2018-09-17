@@ -75,6 +75,7 @@ public:
 	void friend_request(int sender_id, int recver_id,std::string content);
 	void friend_accepted(int user1_id, int user2_id);
 	void friend_refused(int user1_id, int user2_id);
+	void friend_list(int id);
 private:
 
 

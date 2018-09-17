@@ -6,6 +6,7 @@
 #include <cppconn/resultset.h>
 #include <cppconn/statement.h>
 #include <cppconn/prepared_statement.h>
+#include <memory>
 
 class DbConnector
 {
@@ -21,7 +22,7 @@ public:
 
 	int getMaxUserID() {
 		sql::PreparedStatement *stmt = con->prepareStatement("SELECT Max(id) from user");
-		auto res = stmt->executeQuery();
+		std::shared_ptr<sql::ResultSet> res (stmt->executeQuery());
 		delete stmt;
 		return res->getInt("id");
 	}
@@ -48,6 +49,14 @@ public:
 			+ std::to_string(userID_1) + " , " + std::to_string(userID_2) +")");
 		stmt->executeUpdate();
 		delete stmt;
+	}
+
+	auto queryFriend(int id) {
+		sql::PreparedStatement *stmt = con->prepareStatement("SELECT userID_1,userID_2,groupID_in_1,groupID_in_2 \
+			from friend where userID_1 = "+std::to_string(id)+" or userID_2 = "+ std::to_string(id));
+		std::shared_ptr<sql::ResultSet> res (stmt->executeQuery()) ;
+		delete stmt;
+		return res;
 	}
 
 	~DbConnector() {

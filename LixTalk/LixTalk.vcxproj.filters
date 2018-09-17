@@ -20,7 +20,6 @@
     <ClCompile Include="Acceptor.cpp">
       <Filter>net</Filter>
     </ClCompile>
-    <ClCompile Include="msg.cpp" />
     <ClCompile Include="ChatServer.cpp" />
     <ClCompile Include="Server.cpp" />
   </ItemGroup>

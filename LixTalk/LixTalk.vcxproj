@@ -67,7 +67,6 @@
     <ClCompile Include="CurThread.h" />
     <ClCompile Include="EventLoop.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="msg.cpp" />
     <ClCompile Include="Poller.cpp" />
     <ClCompile Include="Server.cpp" />
     <ClCompile Include="Socket.cpp" />

@@ -110,12 +110,15 @@ void ChatServer::msgExec_err(int fd, std::string errMsg) {
 }
 
 void ChatServer::waitingFirstMsg(int fd, std::string msg, Server* serv) {
-	message m(msg);
-	if (m.getInt("recver_id") != 0) {
-		serv->send(fd, "Bad request!");
-		serv->shutdown(fd);
-	} else {
-		switch (m.getInt("type")) {
+	try {
+		message m(msg);
+
+		if (m.getInt("recver_id") != 0) {
+			serv->send(fd, "Bad request!");
+			serv->shutdown(fd);
+		}
+		else {
+			switch (m.getInt("type")) {
 			case 0: //login request
 				msgExec_login(fd, m);
 				break;
@@ -125,7 +128,11 @@ void ChatServer::waitingFirstMsg(int fd, std::string msg, Server* serv) {
 
 			default:
 				msgExec_err(fd, "unknown type");
+			}
 		}
+	}
+	catch (std::invalid_argument) {
+		msgExec_err_fatal(fd, "Bad Request");
 	}
 }
 
@@ -143,8 +150,9 @@ bool ChatServer::forwardMsg(int sender_id, int recver_id, std::string msg) {
 }
 
 void ChatServer::recvMsg(int fd, std::string msg, Server* serv) {
-	message m(msg);
-	switch (m.getInt("type")) {
+	try {
+		message m(msg);
+		switch (m.getInt("type")) {
 		case 9:
 			if (forwardMsg(m.getInt("sender_id"), m.getInt("recver_id"), msg) == false) {
 				msgExec_err(fd, "offline");
@@ -155,6 +163,9 @@ void ChatServer::recvMsg(int fd, std::string msg, Server* serv) {
 			break;
 		default:
 			msgExec_err(fd, "unknown kype!");
+		}
+	}catch (std::invalid_argument) {
+		msgExec_err(fd, "Bad Request");
 	}
 }
 
@@ -182,7 +193,9 @@ void ChatServer::msgExec_friend(int fd, message& msg) {
 		case 3:
 			friend_refused(msg.getInt("sender_id"), msg.getInt("recver_id"));
 			break;
-
+		case 4:
+			friend_list(msg.getInt("sender_id"));
+			break;
 	}
 }
 
@@ -211,4 +224,27 @@ void ChatServer::friend_refused(int user1_id, int user2_id) {
 	m.add("code", 3);
 	m.add("recver_id", user2_id);
 	sendMsg(socketMap_.getFd(user1_id), m.getString());
+}
+
+void ChatServer::friend_list(int id) {
+	auto res = db_.queryFriend(id);
+	message m;
+	m.add("type", 3);
+	m.add("code", 4);
+	rapidjson::Value friendId(rapidjson::kArrayType);
+	rapidjson::Value friendGroup(rapidjson::kArrayType);
+	auto& alloc = m.getAllocator();
+	while(res->next()) {
+		if(res->getInt("userID_1")==id) {
+			friendId.PushBack(res->getInt("userID_2"),alloc);
+			friendGroup.PushBack(res->getInt("groupID_in_1"), alloc);
+		}else {
+			friendId.PushBack(res->getInt("userID_1"), alloc);
+			friendGroup.PushBack(res->getInt("groupID_in_2"), alloc);
+		}
+	}
+	m.add("friendID", std::move(friendId));
+	m.add("friendGroup", std::move(friendGroup));
+	auto str = m.getString();
+	sendMsg(socketMap_.getFd(id), m.getString());
 }

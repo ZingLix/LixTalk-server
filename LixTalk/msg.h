@@ -17,12 +17,8 @@ public:
 
 	message(std::string str) :allocator(document.GetAllocator()) {
 		document.Parse(str.c_str());
-		if (/*!(document.HasMember("sender_id")&&
-			document.HasMember("recver_id")&&
-			document.HasMember("content")&&
-			document.HasMember("type"))||*/
-			document.HasParseError()) {
-			throw;
+		if (document.HasParseError()) {
+			throw std::invalid_argument("Parse Error");
 		}
 	}
 
@@ -57,6 +53,15 @@ public:
 
 	std::string getString(const char* key) {
 		return document[key].GetString();
+	}
+
+	rapidjson::MemoryPoolAllocator<>& getAllocator() {
+		return allocator;
+	}
+
+	void add(std::string key,rapidjson::Value&& val) {
+		rapidjson::Value k(key.c_str(), allocator);
+		document.AddMember(k, val, allocator);
 	}
 
 private:
