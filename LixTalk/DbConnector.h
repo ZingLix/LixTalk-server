@@ -61,7 +61,7 @@ public:
 	}
 
 	void addOfflineMsg(int id,std::string msg) {
-		redisCommand(redisCon, "LPUSH OFFLINE_MSG_%d %s", id, msg.c_str());
+		redisCommand(redisCon, "RPUSH OFFLINE_MSG_%d %s", id, msg.c_str());
 	}
 
 	std::shared_ptr<std::vector<std::string>> getOfflineMsg(int id) {
