@@ -89,7 +89,7 @@
       <CppLanguageStandard>c++17</CppLanguageStandard>
     </ClCompile>
     <Link>
-      <LibraryDependencies>mysqlcppconn</LibraryDependencies>
+      <LibraryDependencies>mysqlcppconn;hiredis</LibraryDependencies>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

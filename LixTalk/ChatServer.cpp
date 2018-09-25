@@ -17,25 +17,28 @@ void ChatServer::msgExec_login(int fd, message& msg) {
 		userMap_.insert(std::make_pair(id, user(fd)));
 		socketMap_.insert(fd, id);
 
-		rapidjson::Document doc;
-		rapidjson::MemoryPoolAllocator<>& allocator = doc.GetAllocator();
-		doc.SetObject();
-		doc.AddMember("sender_id", 0, allocator);
-		doc.AddMember("type", 0, allocator);
-		doc.AddMember("result", 1, allocator);
-		doc.AddMember("recver_id", id, allocator);
-		rapidjson::StringBuffer buffer;
-		buffer.Clear();
-		rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
-		doc.Accept(writer);
-		std::string m = buffer.GetString();
+		message m;
+
+		m.add("sender_id", 0);
+		m.add("type", 0);
+		m.add("result", 1);
+		m.add("recver_id", id);
+
 		std::cout << id << " login!" << std::endl;
-		server_.send(fd, m);
+		sendMsg(fd, m.getString());
 		server_.setMessageCallback(fd, std::bind(&ChatServer::recvMsg, this,
 			std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 	}
 
 }
+
+void ChatServer::execUnsentMsg(int id) {
+	auto ptr = db_.getOfflineMsg(id);
+	for(auto it=ptr->begin();it!=ptr->end();++it) {
+		sendMsg(socketMap_.getFd(id), *it);
+	}
+}
+
 
 int ChatServer::checkLoginInfo(message& msg) {
 	std::string username = msg.getString("username");
@@ -136,7 +139,7 @@ void ChatServer::waitingFirstMsg(int fd, std::string msg, Server* serv) {
 	}
 }
 
-bool ChatServer::forwardMsg(int sender_id, int recver_id, std::string msg) {
+void ChatServer::forwardMsg(int sender_id, int recver_id, std::string msg) {
 	std::cout << "sender id:" << sender_id << std::endl;
 	std::cout << "recver id:" << recver_id << std::endl;
 	std::cout << "message:" << msg << std::endl;
@@ -144,29 +147,47 @@ bool ChatServer::forwardMsg(int sender_id, int recver_id, std::string msg) {
 	if (fd!=-1) {
 		sendMsg(fd, msg);
 		std::cout << "forwarded\n";
-		return true;
+	}else {
+		db_.addOfflineMsg(recver_id, msg);
 	}
-	return false;
 }
 
 void ChatServer::recvMsg(int fd, std::string msg, Server* serv) {
-	try {
-		message m(msg);
-		switch (m.getInt("type")) {
-		case 9:
-			if (forwardMsg(m.getInt("sender_id"), m.getInt("recver_id"), msg) == false) {
-				msgExec_err(fd, "offline");
+	auto ptr= split(msg);
+
+	for(auto it=ptr->begin();it!=ptr->end();++it) {
+		try {
+			message m(*it);
+			switch (m.getInt("type")) {
+			case 9:
+				forwardMsg(m.getInt("sender_id"), m.getInt("recver_id"), *it);
+				break;
+			case 3:
+				msgExec_friend(fd, m);
+				break;
+			case 8:
+				execUnsentMsg(socketMap_.getId(fd));
+				break;
+			default:
+				msgExec_err(fd, "unknown kype!");
 			}
-			break;
-		case 3:
-			msgExec_friend(fd, m);
-			break;
-		default:
-			msgExec_err(fd, "unknown kype!");
 		}
-	}catch (std::invalid_argument) {
-		msgExec_err(fd, "Bad Request");
+		catch (std::invalid_argument) {
+			msgExec_err(fd, "Bad Request");
+		}
 	}
+
+}
+
+std::shared_ptr<std::vector<std::string>> ChatServer::split(const std::string& msg) {
+	std::shared_ptr<std::vector<std::string>> ptr(new std::vector<std::string>());
+	int pos = 0;
+	size_t p;
+	while ((p = msg.find("\r\n\r\n", pos)) != std::string::npos) {
+		ptr->push_back(msg.substr(pos, p-pos));
+		pos = p + 4;
+	}
+	return ptr;
 }
 
 //Friend Table

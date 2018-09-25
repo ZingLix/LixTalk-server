@@ -58,15 +58,15 @@ public:
 	void msgExec_err_fatal(int fd, std::string errMsg);
 	void msgExec_friend(int fd, message& msg);
 	bool onNewConn(int fd, const NetAddress& addr, Server* serv);
-
+	void execUnsentMsg(int id);
 	void waitingFirstMsg(int fd, std::string msg, Server* serv);
 
-	bool forwardMsg(int sender_id, int recver_id, std::string msg);
+	void forwardMsg(int sender_id, int recver_id, std::string msg);
 
 	void recvMsg(int fd, std::string msg, Server* serv);
 
 	void sendMsg(const int fd,std::string msg) {
-		server_.send(fd, msg);
+		server_.send(fd, msg.append("\r\n\r\n"));
 	}
 
 	int checkLoginInfo(message& msg);
@@ -77,7 +77,7 @@ public:
 	void friend_refused(int user1_id, int user2_id);
 	void friend_list(int id);
 private:
-
+	std::shared_ptr<std::vector<std::string>> split(const std::string& str);
 
 	std::map<int, user> userMap_;
 	DuplexMap<int,int> socketMap_;

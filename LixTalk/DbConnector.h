@@ -2,17 +2,18 @@
 #define LIXTALK_DBCONNECTOR
 
 #include <cppconn/driver.h>
-#include <cppconn/exception.h>
 #include <cppconn/resultset.h>
 #include <cppconn/statement.h>
 #include <cppconn/prepared_statement.h>
 #include <memory>
+#include <hiredis/hiredis.h>
 
 class DbConnector
 {
 public:
 	DbConnector():con(nullptr) {
 		driver_ = get_driver_instance();
+		redisCon = redisConnect("127.0.0.1", 6379);
 	}
 
 	void connect(std::string username,std::string password) {
@@ -59,6 +60,22 @@ public:
 		return res;
 	}
 
+	void addOfflineMsg(int id,std::string msg) {
+		redisCommand(redisCon, "LPUSH OFFLINE_MSG_%d %s", id, msg.c_str());
+	}
+
+	std::shared_ptr<std::vector<std::string>> getOfflineMsg(int id) {
+		redisReply* reply = static_cast<redisReply*>(redisCommand(redisCon, "LLEN OFFLINE_MSG_%d", id));
+		int length = reply->integer;
+		reply = static_cast<redisReply*>(redisCommand(redisCon, "LRANGE OFFLINE_MSG_%d 0 %d", id, length));
+		std::shared_ptr<std::vector<std::string>> ptr(new std::vector<std::string>());
+		for(int i=0;i<length;i++) {
+			ptr->push_back(reply->element[i]->str);
+		}
+		redisCommand(redisCon, "DEL OFFLINE_MSG_%d", id);
+		return ptr;
+	}
+
 	~DbConnector() {
 		if(con!=nullptr)
 		delete con;
@@ -67,6 +84,7 @@ public:
 private:
 	sql::Driver* driver_;
 	sql::Connection* con;
+	redisContext *redisCon;
 };
 
 #endif

@@ -28,7 +28,7 @@ void Poller::removeChannel(Channel* channel) {
 	const struct pollfd& pfd = pollfds_[idx];
 	(void)pfd;
 	//assert(pfd.fd == -channel->fd() - 1 && pfd.events == channel->events());
-	size_t n = channel_map_.erase(channel->fd());
+	/*size_t n = */channel_map_.erase(channel->fd());
 	//assert(n == 1); (void)n;
 	if (static_cast<size_t>(idx) == pollfds_.size() - 1)
 	{
