@@ -8,7 +8,7 @@ public:
 		
 	}
 
-	user(long long id):id_(id) {
+	user(int id):id_(id) {
 		//cur_seq_ = user.getseq();
 		//max_seq_ = enlargeSeq(cur_seq_);
 	}

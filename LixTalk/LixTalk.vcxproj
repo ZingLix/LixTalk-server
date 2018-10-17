@@ -66,6 +66,8 @@
     <ClCompile Include="ChatServer.cpp" />
     <ClCompile Include="CurThread.h" />
     <ClCompile Include="EventLoop.cpp" />
+    <ClCompile Include="logging.cpp" />
+    <ClCompile Include="LogInfo.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Poller.cpp" />
     <ClCompile Include="Server.cpp" />
@@ -77,6 +79,8 @@
     <ClInclude Include="ChatServer.h" />
     <ClInclude Include="DbConnector.h" />
     <ClInclude Include="EventLoop.h" />
+    <ClInclude Include="logging.h" />
+    <ClInclude Include="LogInfo.h" />
     <ClInclude Include="msg.h" />
     <ClInclude Include="NetAddress.h" />
     <ClInclude Include="Server.h" />
@@ -89,7 +93,7 @@
       <CppLanguageStandard>c++17</CppLanguageStandard>
     </ClCompile>
     <Link>
-      <LibraryDependencies>mysqlcppconn;hiredis</LibraryDependencies>
+      <LibraryDependencies>mysqlcppconn;hiredis;pthread</LibraryDependencies>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
