@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 2.6)
+project(LixTalk)
+add_definitions(-std=c++17)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ./bin/x64/Debug/)
+add_executable(LixTalk main.cpp logging.cpp LogInfo.cpp Acceptor.cpp Channel.cpp ChatServer.cpp EventLoop.cpp msg.cpp Poller.cpp Server.cpp Socket.cpp)
+target_link_libraries(LixTalk pthread mysqlcppconn hiredis)
