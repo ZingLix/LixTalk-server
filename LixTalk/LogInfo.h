@@ -19,7 +19,7 @@ public:
 	~LogInfo();
 
 private:
-	std::vector<std::string> buf;
+	std::string buf;
 	LogLevel logLevel_;
 	std::string sourcefile;
 	int line_;

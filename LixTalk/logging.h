@@ -21,7 +21,7 @@ public:
 		NUM_LOG_LEVELS,
 	};
 
-	using Buffer = std::vector<std::string>;
+	using Buffer = std::string;
 
 	const size_t LOG_BUFFER_SIZE_LIMIT = 500;
 

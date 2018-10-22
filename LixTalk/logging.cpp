@@ -1,6 +1,6 @@
 #include "logging.h"
 #include <fcntl.h>
-
+#include <numeric>
 
 
 Logger::Logger():thread_(&Logger::loop,this) {
@@ -29,11 +29,11 @@ void Logger::loop() {
 		}
 		std::string entireLog;
 		for (auto buf : buf2) {
-			std::string log;
+			/*std::string log;
 			for (auto str : buf) {
 				log += str + " ";
-			}
-			entireLog += log;
+			}*/
+			entireLog += buf;
 		}
 		buf2.clear();
 		::write(fd, entireLog.c_str(), entireLog.length());
