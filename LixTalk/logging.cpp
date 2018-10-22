@@ -18,22 +18,24 @@ Logger::~Logger() {
 }
 
 void Logger::loop() {
-	while(looping_) {
-		if(buf1.size()>LOG_BUFFER_SIZE_LIMIT) {
-			{
-				std::lock_guard<std::mutex> lock(buf_mutex_);
-				buf1.swap(buf2);
+	using namespace std::chrono_literals;
+	while (looping_) {
+		{
+			std::unique_lock<std::mutex> lk(buf_mutex_);
+			if (buf1.size() < LOG_BUFFER_SIZE_LIMIT) {
+				cv.wait_for(lk, 3s);
 			}
-			std::string entireLog;
-			for(auto buf:buf2) {
-				std::string log;
-				for(auto str:buf) {
-					log += str + " ";
-				}
-				entireLog += log;
-			}
-			buf2.clear();
-			::write(fd, entireLog.c_str(), entireLog.length());
+			buf1.swap(buf2);
 		}
+		std::string entireLog;
+		for (auto buf : buf2) {
+			std::string log;
+			for (auto str : buf) {
+				log += str + " ";
+			}
+			entireLog += log;
+		}
+		buf2.clear();
+		::write(fd, entireLog.c_str(), entireLog.length());
 	}
 }

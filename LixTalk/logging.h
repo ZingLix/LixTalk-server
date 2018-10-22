@@ -5,7 +5,7 @@
 #include <unistd.h>
 #include <vector>
 #include <mutex>
-
+#include <condition_variable>
 
 class Logger
 {
@@ -23,7 +23,7 @@ public:
 
 	using Buffer = std::vector<std::string>;
 
-	const size_t LOG_BUFFER_SIZE_LIMIT = 0;
+	const size_t LOG_BUFFER_SIZE_LIMIT = 500;
 
 	Logger();
 	~Logger();
@@ -34,6 +34,7 @@ public:
 	void addLog(Buffer&& buf) {
 		std::lock_guard<std::mutex> lock(buf_mutex_);
 		buf1.push_back(buf);
+		if (buf1.size() > LOG_BUFFER_SIZE_LIMIT) cv.notify_one();
 	}
 
 	void loop();
@@ -44,6 +45,7 @@ private:
 	std::vector<Buffer> buf1, buf2;
 	bool looping_;
 	std::mutex buf_mutex_;
+	std::condition_variable cv;
 };
 
 
