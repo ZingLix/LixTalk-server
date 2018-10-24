@@ -17,7 +17,7 @@ LixTalk works on Ubuntu 16.04 (have not been tested on other version).
 LixTalk needs several dependencies, so you should first
 
 ```
-sudo apt update
+sudo apt-get update
 sudo apt-get install libhiredis-dev libmysqlcppconn-dev cmake
 ```
 
