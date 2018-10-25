@@ -72,3 +72,6 @@ before_install:
     - sudo apt-get install libmysqlcppconn-dev
     - eval "${MATRIX_EVAL}"
 script: cmake . && make
+
+notifications:
+  email: false

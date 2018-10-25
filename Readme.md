@@ -2,7 +2,7 @@ English | [简体中文](https://github.com/ZingLix/LixTalk-server/blob/master/R
 
 # LixTalk-server
 
-![](https://travis-ci.com/ZingLix/LixTalk-server.svg?branch=master)  [![CodeFactor](https://www.codefactor.io/repository/github/zinglix/lixtalk-server/badge)](https://www.codefactor.io/repository/github/zinglix/lixtalk-server)
+[![Build Status](https://travis-ci.com/ZingLix/LixTalk-server.svg?branch=master)](https://travis-ci.com/ZingLix/LixTalk-server)  [![CodeFactor](https://www.codefactor.io/repository/github/zinglix/lixtalk-server/badge)](https://www.codefactor.io/repository/github/zinglix/lixtalk-server)
 
 LixTalk is a high-performance secure IM system.
 

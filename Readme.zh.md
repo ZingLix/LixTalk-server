@@ -2,7 +2,7 @@
 
 # LixTalk-server
 
-![](https://travis-ci.com/ZingLix/LixTalk-server.svg?branch=master)
+[![Build Status](https://travis-ci.com/ZingLix/LixTalk-server.svg?branch=master)](https://travis-ci.com/ZingLix/LixTalk-server)  [![CodeFactor](https://www.codefactor.io/repository/github/zinglix/lixtalk-server/badge)](https://www.codefactor.io/repository/github/zinglix/lixtalk-server)
 
 LixTalk 是一个高效、安全的即时通讯系统。
 
