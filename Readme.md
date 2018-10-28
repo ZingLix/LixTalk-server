@@ -12,7 +12,7 @@ This repo is the source code of server which runs on Linux.
 
 ## Installation
 
-LixTalk works on Ubuntu 16.04 (have not been tested on other version).
+LixTalk works on Ubuntu 16.04 (have not been tested on other versions).
 
 LixTalk needs several dependencies, so you should first
 
