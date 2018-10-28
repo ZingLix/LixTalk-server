@@ -8,7 +8,7 @@ LixTalk 是一个高效、安全的即时通讯系统。
 
 这个 repo 是运行于 Linux 上的服务端代码。
 
-[客户端 ->](https://github.com/ZingLix/LixTalk-client)
+[客户端 ->](https://github.com/ZingLix/LixTalk-client) 
 
 ## Installation
 
