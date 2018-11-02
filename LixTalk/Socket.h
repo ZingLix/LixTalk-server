@@ -20,7 +20,7 @@ public:
 	int connect(NetAddress* addr) const;
 	void close();
 	static void close(int fd);
-	static void shutdown(int fd);
+	static void shutdown(int fd, int flag = SHUT_RDWR);
 
 	int fd() const { return sock_fd_; }
 	static void send(const int fd,std::string msg) {

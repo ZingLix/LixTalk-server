@@ -49,6 +49,7 @@ private:
 };
 
 
-static Logger logger;
-
+extern Logger logger;
+extern Logger::LogLevel logLevel;
+extern Logger::LogLevel printLevel;
 #endif

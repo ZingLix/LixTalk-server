@@ -1,6 +1,7 @@
 #include "ChatServer.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
+#include "LogInfo.h"
 #include <iostream>
 
 ChatServer::ChatServer(in_port_t port): server_(port) {
@@ -24,7 +25,7 @@ void ChatServer::msgExec_login(int fd, message& msg) {
 		m.add("result", 1);
 		m.add("recver_id", id);
 
-		std::cout << id << " login!" << std::endl;
+		LOG_INFO << id << " login." ;
 		sendMsg(fd, m.getString());
 		server_.setMessageCallback(fd, std::bind(&ChatServer::recvMsg, this,
 			std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
@@ -38,7 +39,6 @@ void ChatServer::execUnsentMsg(int id) {
 		sendMsg(socketMap_.getFd(id), *it);
 	}
 }
-
 
 int ChatServer::checkLoginInfo(message& msg) {
 	std::string username = msg.getString("username");
@@ -57,11 +57,10 @@ int ChatServer::checkLoginInfo(message& msg) {
 }
 
 void ChatServer::logout(int fd) {
-	std::cout << socketMap_.getId(fd) << " offline!" << std::endl;
+	auto id = socketMap_.getId(fd);
+	if(id!=-1) LOG_INFO << id << " offline.";
 	socketMap_.removeByFd(fd);
-
 }
-
 
 void ChatServer::msgExec_register(int fd, message& msg) {
 	std::string username = msg.getString("username");
@@ -96,6 +95,7 @@ bool ChatServer::onNewConn(int fd, const NetAddress& addr, Server* serv) {
 }
 
 void ChatServer::msgExec_err(int fd, std::string errMsg) {
+	LOG_INFO << fd << ": " << errMsg;
 	rapidjson::Document doc;
 	rapidjson::MemoryPoolAllocator<>& allocator = doc.GetAllocator();
 	doc.SetObject();
@@ -140,15 +140,15 @@ void ChatServer::waitingFirstMsg(int fd, std::string msg, Server* serv) {
 }
 
 void ChatServer::forwardMsg(int sender_id, int recver_id, std::string msg) {
-	std::cout << "sender id:" << sender_id << std::endl;
-	std::cout << "recver id:" << recver_id << std::endl;
-	std::cout << "message:" << msg << std::endl;
+	std::string loginfo = "receive new message from " + std::to_string(sender_id) + " to " 
+		+ std::to_string(recver_id) +  " message:" + msg ;
 	auto fd = socketMap_.getFd(recver_id);
 	if (fd!=-1) {
 		sendMsg(fd, msg);
-		std::cout << "forwarded\n";
+		LOG_INFO<<loginfo << " forwarded";
 	}else {
 		db_.addOfflineMsg(recver_id, msg);
+		LOG_INFO << loginfo << " receiver offline";
 	}
 }
 
@@ -181,7 +181,7 @@ void ChatServer::recvMsg(int fd, std::string msg, Server* serv) {
 
 std::shared_ptr<std::vector<std::string>> ChatServer::split(const std::string& msg) {
 	std::shared_ptr<std::vector<std::string>> ptr(new std::vector<std::string>());
-	int pos = 0;
+	size_t pos = 0;
 	size_t p;
 	while ((p = msg.find("\r\n\r\n", pos)) != std::string::npos) {
 		ptr->push_back(msg.substr(pos, p-pos));

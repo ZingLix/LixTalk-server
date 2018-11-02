@@ -66,7 +66,7 @@ public:
 
     std::shared_ptr<std::vector<std::string>> getOfflineMsg(int id) {
         redisReply* reply = static_cast<redisReply*>(redisCommand(redisCon, "LLEN OFFLINE_MSG_%d", id));
-        int length = reply->integer;
+        auto length = reply->integer;
         reply = static_cast<redisReply*>(redisCommand(redisCon, "LRANGE OFFLINE_MSG_%d 0 %d", id, length));
         std::shared_ptr<std::vector<std::string>> ptr(new std::vector<std::string>());
         for(int i = 0; i < length; i++) {

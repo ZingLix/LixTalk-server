@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <cstdio>
+#include "LogInfo.h"
 
 Socket::Socket() {
 	sock_fd_ = ::socket(AF_INET, SOCK_STREAM, 0);
@@ -20,9 +21,9 @@ Socket::~Socket() {
 void Socket::bind(NetAddress& addr) const {
 	int n = ::bind(sock_fd_, sockaddr_cast(addr.addr()), sizeof(*addr.addr()));
 	if(n==0) {
-		printf("bind success!\n");
+		LOG_INFO << "bind success on " << inet_ntoa(addr.addr()->sin_addr) <<":" << htons(addr.addr()->sin_port);
 	} else {
-		printf("bind error!\n");
+		LOG_INFO << "bind error. errno:" << errno;
 	}
 }
 
@@ -43,7 +44,7 @@ void Socket::bind(in_port_t port) const {
 
 void Socket::listen(int backlog) const {
 	if(::listen(sock_fd_, backlog)!=0) {
-		printf("listen error!\n");
+		LOG_ERROR << "listen error. errno: " << errno;;
 	}
 }
 
@@ -55,6 +56,7 @@ int Socket::accept(NetAddress* addr) const {
 	if (connfd >= 0)
 	{
 		addr->set(add);
+		LOG_INFO<<"fd "<<connfd<<": new connect from "<< inet_ntoa(addr->addr()->sin_addr) << ":" << htons(addr->addr()->sin_port);
 	}
 	return connfd;
 }
@@ -72,13 +74,16 @@ int Socket::connect(NetAddress* addr) const {
 
 
 void Socket::close() {
-	::close(sock_fd_);
+	if(::close(sock_fd_)==0)
+		LOG_INFO << "fd " << sock_fd_ << ": closed.";
 }
 
 void Socket::close(int fd) {
-	::close(fd);
+	if (::close(fd) == 0)
+		LOG_INFO << "fd " << fd << ": closed.";
 }
 
-void Socket::shutdown(int fd) {
-	::shutdown(fd,SHUT_RDWR);
+void Socket::shutdown(int fd,int flag) {
+	if(::shutdown(fd,flag)==0)
+		LOG_INFO << "fd " << fd << ": shutdown.";
 }

@@ -2,6 +2,9 @@
 #include <fcntl.h>
 #include <numeric>
 
+Logger logger;
+Logger::LogLevel logLevel(Logger::DEBUG);
+Logger::LogLevel printLevel(Logger::DEBUG);
 
 Logger::Logger():thread_(&Logger::loop,this) {
 	std::time_t time = std::time(nullptr);

@@ -2,16 +2,14 @@
 #include <iostream>
 #include <unistd.h>
 #include "ChatServer.h"
-#include "logging.h"
-#include <fcntl.h>
-#include "LogInfo.h"
 #include <iomanip>
+#include "LogInfo.h"
 
 int main() {
-    std::cout << "pid:" << getpid() << ", tid:" << CurThread::tid() << std::endl;
+	LOG_INFO << "Running on pid:" << getpid() << ", tid:" << CurThread::tid();
 
-    ChatServer server(9981);
-    server.start();
+	ChatServer server(9981);
+	server.start();
 
 	return 0;
 }

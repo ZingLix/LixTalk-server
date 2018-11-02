@@ -1,6 +1,7 @@
 #include "Server.h"
 #include "unistd.h"
 #include <iostream>
+#include "LogInfo.h"
 
 Server::Server(in_port_t port):state_(WAITING),addr_(port){
 	if(EventLoop::thisThreadEventLoop()==nullptr) {
@@ -75,18 +76,17 @@ void Server::handleRead(const int fd) {
 	while( (n = read(fd,buf,32) ) != 0 ) {
 		if (n == -1) {
 			if (errno != EAGAIN) {
-				std::cout << "error! " << errno << std::endl;	
+				LOG_ERROR <<"fd "<<fd<< ": handle new message error! error:" << errno;	
 			}
 			break;
 		}
 		Buffer.insert(Buffer.end(), buf, buf + n);
-		
 	}
 	if (Buffer.size() == 0) {
 		if (CloseCallback_) {
 			CloseCallback_(fd, this);
-			shutdown(fd);
 		}
+		shutdown(fd);
 		event_loop_->removeChannel(&*channelMap_[fd]);
 	}else {
 		std::string msg(Buffer.begin(), Buffer.end());
@@ -97,10 +97,11 @@ void Server::handleRead(const int fd) {
 
 void Server::send(const int fd, std::string msg) {
 	//Socket::send(fd, msg);
-	int n = ::write(fd, &*msg.begin(), msg.length());
+	auto n = ::write(fd, &*msg.begin(), msg.length());
+	if (n == -1) LOG_ERROR << "write error. errno:" << errno;
 	//std::cout << errno << std::endl;
 }
 
 void Server::shutdown(int fd) {
-	::shutdown(fd, SHUT_WR);
+	Socket::shutdown(fd, SHUT_WR);
 }
