@@ -8,6 +8,7 @@
 #include <cppconn/exception.h>
 #include <memory>
 #include <hiredis/hiredis.h>
+#include "LogInfo.h"
 
 class DbConnector {
 public:
@@ -18,7 +19,17 @@ public:
 
     void connect(std::string username, std::string password) {
         con = driver_->connect("tcp://127.0.0.1:3306", username, password);
-        con->setSchema("test");
+		try {
+			con->setSchema("LixTalk");
+		}catch (sql::SQLException& e) {
+			if(e.getErrorCode()==1049) {
+				LOG_ERROR << "Database not existed.";
+				initDb();
+				LOG_INFO << "Database create success.";
+			}else {
+				throw;
+			}
+		}
     }
 
     int getMaxUserID() {
@@ -30,10 +41,7 @@ public:
 
     std::shared_ptr < sql::ResultSet > getUser(std::string username) {
         std::shared_ptr< sql::Statement > stmt (con->createStatement());
-        //	stmt->setString(1, username);
-
         stmt->execute("SELECT * from user where username = '" + username + "'");
-        //	std::cout<<stmt->getResultSet()->getString(1);
         return std::shared_ptr < sql::ResultSet >(stmt->getResultSet());
     }
 
@@ -74,6 +82,78 @@ public:
         }
         redisCommand(redisCon, "DEL OFFLINE_MSG_%d", id);
         return ptr;
+    }
+
+	void createUserSeqTable(int idx) {
+		std::string tableName("userSeq_" + std::to_string(idx));
+		std::unique_ptr<sql::PreparedStatement> stmt ( con->prepareStatement("Create Table "+ tableName + " ( \
+			seq_id Bigint Unsigned auto_increment primary key, \
+			user_id int unsigned not null,\
+			record_table_idx int unsigned not null,\
+			record_id int unsigned not null)" ));
+		stmt->executeUpdate();
+		stmt.reset(con->prepareStatement("Create index idx on "+tableName+"(user_id)"));
+		stmt->executeUpdate();
+    }
+
+	void createChatMsgTable(int idx) {
+		std::string tableName("chatHistory_" + std::to_string(idx));
+		std::unique_ptr<sql::PreparedStatement> stmt(con->prepareStatement("Create Table " + tableName + " ( \
+			msg_id int Unsigned auto_increment primary key, \
+			user_id_from int unsigned not null,\
+			user_id_to int unsigned not null,\
+			type int not null,\
+			content varchar(255) not null)"));
+		stmt->executeUpdate();
+		stmt.reset(con->prepareStatement("Create index idx on " + tableName + "(msg_id)"));
+		stmt->executeUpdate();
+	}
+
+	void createUserTable() {
+		std::string tableName("user");
+		std::unique_ptr<sql::PreparedStatement> stmt(con->prepareStatement("Create Table " + tableName + " ( \
+			user_id bigint Unsigned auto_increment primary key, \
+			username varchar(64) not null,\
+			password varchar(64) not null)"));
+		stmt->executeUpdate();
+		stmt.reset(con->prepareStatement("Create index idx on " + tableName + "(user_id)"));
+		stmt->executeUpdate();
+    }
+
+	void createFriendTable() {
+		std::string tableName("friend");
+		std::unique_ptr<sql::PreparedStatement> stmt(con->prepareStatement("Create Table " + tableName + " ( \
+			id bigint Unsigned auto_increment primary key, \
+			user_id_1 bigint unsigned not null,\
+			user_id_2 bigint unsigned not null,\
+			group_id_in_1 int unsigned not null,\
+			group_id_in_2 int unsigned not null,\
+			add_time timestamp default current_timestamp)"));
+		stmt->executeUpdate();
+		stmt.reset(con->prepareStatement("Create index idx on " + tableName + "(user_id_1,user_id_2)"));
+		stmt->executeUpdate();
+	}
+
+	void createStatusTable() {
+		std::string tableName("status");
+		std::unique_ptr<sql::PreparedStatement> stmt(con->prepareStatement("Create Table " + tableName + " ( \
+			curUserCount bigint Unsigned , \
+			curMsgCount bigint unsigned not null)"));
+		stmt->executeUpdate();
+		stmt.reset(con->prepareStatement("insert into " + tableName + " values (0,0)"));
+		stmt->executeUpdate();
+	}
+
+	void initDb() {
+		std::string DbName("LixTalk");
+		std::unique_ptr<sql::PreparedStatement> stmt(con->prepareStatement("Create Database " + DbName ));
+		stmt->executeUpdate();
+		con->setSchema("LixTalk");
+		createStatusTable();
+		createUserTable();
+		createFriendTable();
+		createUserSeqTable(0);
+		createChatMsgTable(0);
     }
 
     ~DbConnector() {

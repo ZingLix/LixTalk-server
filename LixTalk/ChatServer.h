@@ -47,7 +47,17 @@ public:
 	ChatServer(in_port_t port);
 
 	void start() {
-		db_.connect("zinglix","password");
+		try {
+			db_.connect("zinglix", "password");
+		}catch (sql::SQLException& e) {
+			using std::cout;
+			cout << "# ERR: SQLException in " << __FILE__;
+			cout << "(" << "EXAMPLE_FUNCTION" << ") on line " << __LINE__ << std::endl;
+			/* Use what() (derived from std::runtime_error) to fetch the error message */
+			cout << "# ERR: " << e.what();
+			cout << " (MySQL error code: " << e.getErrorCode();
+			cout << ", SQLState: " << e.getSQLState() << " )" << std::endl;
+		}
 //		cur_user_id = db_.getMaxUserID();
 		server_.start();
 	}

@@ -1,8 +1,6 @@
 #include "CurThread.h"
-#include <iostream>
 #include <unistd.h>
 #include "ChatServer.h"
-#include <iomanip>
 #include "LogInfo.h"
 
 int main() {
