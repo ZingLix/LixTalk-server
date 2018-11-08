@@ -65,13 +65,14 @@
     <ClCompile Include="Channel.cpp" />
     <ClCompile Include="ChatServer.cpp" />
     <ClCompile Include="CurThread.h" />
+    <ClCompile Include="DbConnector.cpp" />
     <ClCompile Include="EventLoop.cpp" />
     <ClCompile Include="logging.cpp" />
     <ClCompile Include="LogInfo.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Poller.cpp" />
     <ClCompile Include="Server.cpp" />
-    <ClCompile Include="Setting.cpp" />
+    <ClCompile Include="Setting.h" />
     <ClCompile Include="Socket.cpp" />
   </ItemGroup>
   <ItemGroup>

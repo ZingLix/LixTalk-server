@@ -2,12 +2,31 @@
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
 #include "LogInfo.h"
+#include "Setting.h"
 #include <iostream>
 
-ChatServer::ChatServer(in_port_t port): server_(port) {
+ChatServer::ChatServer(in_port_t port): userMap_(),server_(port) {
 	server_.setNewConnCallback(std::bind(&ChatServer::onNewConn, this,
 	                                     std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 	server_.setCloseCallback([this](int id, Server* s) { this->logout(id); });
+}
+
+void ChatServer::start() {
+	try {
+		db_.connect("zinglix", "password");
+	} catch (sql::SQLException& e) {
+		using std::cout;
+		cout << "# ERR: SQLException in " << __FILE__;
+		cout << "(" << "EXAMPLE_FUNCTION" << ") on line " << __LINE__ << std::endl;
+		/* Use what() (derived from std::runtime_error) to fetch the error message */
+		cout << "# ERR: " << e.what();
+		cout << " (MySQL error code: " << e.getErrorCode();
+		cout << ", SQLState: " << e.getSQLState() << " )" << std::endl;
+	}
+	cur_user_count = db_.getMaxUserID();
+	cur_chatmsg_idx = db_.getChatMsgIdx();
+	cur_chatmsg_count= db_.getChatMsgCount(cur_chatmsg_idx);
+	server_.start();
 }
 
 void ChatServer::msgExec_login(int fd, message& msg) {
@@ -46,12 +65,12 @@ int ChatServer::checkLoginInfo(message& msg) {
 	try {
 		userinfo->next();
 		if (msg.getString("password") == userinfo->getString("password")) {
-			return userinfo->getInt("id");
+			return userinfo->getInt("user_id");
 		}
 		else {
 			return -1;
 		}
-	}catch (sql::InvalidArgumentException) {
+	}catch (sql::InvalidArgumentException&) {
 		return -1;
 	}
 }
@@ -66,7 +85,12 @@ void ChatServer::msgExec_register(int fd, message& msg) {
 	std::string username = msg.getString("username");
 	std::string password = msg.getString("password");
 	db_.addUser(username, password);
-
+	auto info = db_.getUser(username);
+	info->next();
+	auto id = info->getUInt64("user_id");
+	if(id % userCountEachTable ==0) {
+		db_.createUserSeqTable(id/userCountEachTable);
+	}
 	rapidjson::Document doc;
 	rapidjson::MemoryPoolAllocator<>& allocator = doc.GetAllocator();
 	doc.SetObject();
@@ -150,6 +174,26 @@ void ChatServer::forwardMsg(int sender_id, int recver_id, std::string msg) {
 		db_.addOfflineMsg(recver_id, msg);
 		LOG_INFO << loginfo << " receiver offline";
 	}
+	saveMsg(sender_id, recver_id,msg);
+}
+
+void ChatServer::saveMsg(int sender_id, int recver_id,std::string& msg) {
+	if(cur_chatmsg_idx >=chatMsgCountEachTable) {
+		if (mutex_.try_lock()) {
+			cur_chatmsg_count = 0;
+			++cur_chatmsg_idx;
+			db_.createChatMsgTable(cur_chatmsg_idx);
+			mutex_.unlock();
+		}else {
+			using namespace std::chrono_literals;
+			while (cur_chatmsg_idx >= chatMsgCountEachTable) {
+				std::this_thread::sleep_for(100ms);
+			}
+		}
+	}
+	int idx = cur_chatmsg_idx;
+	++cur_chatmsg_count;
+	db_.saveMsg(sender_id, recver_id, msg, idx,1);
 }
 
 void ChatServer::recvMsg(int fd, std::string msg, Server* serv) {
@@ -189,18 +233,6 @@ std::shared_ptr<std::vector<std::string>> ChatServer::split(const std::string& m
 	}
 	return ptr;
 }
-
-//Friend Table
-//create table friend
-//	-> (
-//	->seqID int NOT NULL AUTO_INCREMENT,
-//	->userID_1 int NOT NULL,
-//	->userID_2 int NOT NULL,
-//	->groupID_in_1 int NOT NULL,
-//	->groupID_in_2 int NOT NULL,
-//	->addTime datetime not NULL,
-//	->PRIMARY KEY(seqID)
-//	->);
 
 void ChatServer::msgExec_friend(int fd, message& msg) {
 	std::string m = msg.getString();
@@ -256,12 +288,12 @@ void ChatServer::friend_list(int id) {
 	rapidjson::Value friendGroup(rapidjson::kArrayType);
 	auto& alloc = m.getAllocator();
 	while(res->next()) {
-		if(res->getInt("userID_1")==id) {
-			friendId.PushBack(res->getInt("userID_2"),alloc);
-			friendGroup.PushBack(res->getInt("groupID_in_1"), alloc);
+		if(res->getInt("user_id_1")==id) {
+			friendId.PushBack(res->getInt("user_id_2"),alloc);
+			friendGroup.PushBack(res->getInt("group_id_in_1"), alloc);
 		}else {
-			friendId.PushBack(res->getInt("userID_1"), alloc);
-			friendGroup.PushBack(res->getInt("groupID_in_2"), alloc);
+			friendId.PushBack(res->getInt("user_id_1"), alloc);
+			friendGroup.PushBack(res->getInt("group_id_in_1"), alloc);
 		}
 	}
 	m.add("friendID", std::move(friendId));

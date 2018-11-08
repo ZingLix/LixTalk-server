@@ -8,7 +8,7 @@ template<class T1,class T2>
 class DuplexMap
 {
 public:
-	DuplexMap() {}
+	DuplexMap():FdToId(),IdToFd() {}
 
 	void insert(T1 fd, T2 id) {
 		FdToId.insert(std::make_pair(fd, id));
@@ -46,21 +46,7 @@ class ChatServer
 public:
 	ChatServer(in_port_t port);
 
-	void start() {
-		try {
-			db_.connect("zinglix", "password");
-		}catch (sql::SQLException& e) {
-			using std::cout;
-			cout << "# ERR: SQLException in " << __FILE__;
-			cout << "(" << "EXAMPLE_FUNCTION" << ") on line " << __LINE__ << std::endl;
-			/* Use what() (derived from std::runtime_error) to fetch the error message */
-			cout << "# ERR: " << e.what();
-			cout << " (MySQL error code: " << e.getErrorCode();
-			cout << ", SQLState: " << e.getSQLState() << " )" << std::endl;
-		}
-//		cur_user_id = db_.getMaxUserID();
-		server_.start();
-	}
+	void start();
 
 	void msgExec_login(int fd, message& msg);
 	void msgExec_register(int fd, message& msg);
@@ -79,6 +65,7 @@ public:
 		server_.send(fd, msg.append("\r\n\r\n"));
 	}
 
+	void saveMsg(int sender_id, int recver_id,std::string& msg);
 	int checkLoginInfo(message& msg);
 	void logout(int fd);
 
@@ -86,12 +73,15 @@ public:
 	void friend_accepted(int user1_id, int user2_id);
 	void friend_refused(int user1_id, int user2_id);
 	void friend_list(int id);
-private:
-	std::shared_ptr<std::vector<std::string>> split(const std::string& str);
 
+private:
+	std::mutex mutex_;
+	std::shared_ptr<std::vector<std::string>> split(const std::string& str);
 	std::map<int, user> userMap_;
 	DuplexMap<int,int> socketMap_;
-//	int cur_user_id;
+	int cur_user_count;
+	int cur_chatmsg_idx;
+	int cur_chatmsg_count;
 	Server server_;
 	DbConnector db_;
 };

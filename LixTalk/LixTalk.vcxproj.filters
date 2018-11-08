@@ -24,7 +24,8 @@
     <ClCompile Include="Server.cpp" />
     <ClCompile Include="logging.cpp" />
     <ClCompile Include="LogInfo.cpp" />
-    <ClCompile Include="Setting.cpp" />
+    <ClCompile Include="Setting.h" />
+    <ClCompile Include="DbConnector.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="msg.h" />
