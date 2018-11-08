@@ -50,12 +50,13 @@ public:
 
 	~DbConnector();
 
+	static const char * DbName;
+
 private:
     sql::Driver* driver_;
     sql::Connection* con;
     redisContext *redisCon;
 };
-
 
 
 #endif

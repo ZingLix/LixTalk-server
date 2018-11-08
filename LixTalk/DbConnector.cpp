@@ -1,5 +1,7 @@
 #include "DbConnector.h"
 
+const char * DbConnector::DbName = "LixTalk_test";
+
 DbConnector::DbConnector() : con(nullptr) {
 	driver_ = get_driver_instance();
 	redisCon = redisConnect("127.0.0.1", 6379);
@@ -8,7 +10,7 @@ DbConnector::DbConnector() : con(nullptr) {
 void DbConnector::connect(std::string username, std::string password) {
 	con = driver_->connect("tcp://127.0.0.1:3306", username, password);
 	try {
-		con->setSchema("LixTalk");
+		con->setSchema(DbName);
 	} catch (sql::SQLException& e) {
 		if (e.getErrorCode() == 1049) {
 			LOG_ERROR << "Database not existed.";
@@ -150,10 +152,10 @@ void DbConnector::createStatusTable() {
 }
 
 void DbConnector::initDb() {
-	std::string DbName("LixTalk");
-	std::unique_ptr<sql::PreparedStatement> stmt(con->prepareStatement("Create Database " + DbName));
+	std::string DatabaseName(DbName);
+	std::unique_ptr<sql::PreparedStatement> stmt(con->prepareStatement("Create Database " + DatabaseName));
 	stmt->executeUpdate();
-	con->setSchema("LixTalk");
+	con->setSchema(DbName);
 	createStatusTable();
 	createUserTable();
 	createFriendTable();
