@@ -1,15 +1,23 @@
 import socket
 import json,threading
+import time
 
 def soc_thread(soc,i):
+    while (flag==False):
+        time.sleep(0.1)
+    t1=time.time()
     data = {
         'recver_id':0,
         'type' : 1,
         'username' : str(i),
         'password' : str(i)
     }
-    s.send(json.dumps(data).encode())
+    soc.send(json.dumps(data).encode())
+    soc.recv(1024)
+    t2=time.time()
+    print((t2-t1).se)
 
+flag=False
 host = '118.25.27.241'
 port =9981
 test_size=1000
@@ -27,5 +35,6 @@ for s in socketlist:
     t.start()
     t.join()
     i=i+1
+flag=True
 
 #s.send("asdfasdf".encode())

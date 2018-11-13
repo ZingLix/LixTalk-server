@@ -1,10 +1,7 @@
 #ifndef LIXTALK_LOGINFO
 #define LIXTALK_LOGINFO
 
-
-#include <vector>
 #include "logging.h"
-#include <cstring>
 
 class LogInfo
 {

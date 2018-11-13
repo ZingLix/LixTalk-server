@@ -28,7 +28,7 @@ public:
 
 	void addFriend(int userID_1, int userID_2);
 
-	std::shared_ptr<sql::ResultSet> queryFriend(int id);
+	std::unique_ptr<sql::ResultSet> queryFriend(int id);
 
 	void addOfflineMsg(int id, std::string msg);
 
@@ -47,6 +47,10 @@ public:
 	void initDb();
 
 	void saveMsg(int sender_id, int recver_id, std::string& msg, int idx, int type);
+
+	std::unique_ptr<sql::ResultSet> pullMsg(int id,int chatHisIdx, int num = 200);
+
+	void updateStatusMsgIdx(int idx);
 
 	~DbConnector();
 

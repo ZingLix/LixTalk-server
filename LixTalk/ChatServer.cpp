@@ -178,22 +178,25 @@ void ChatServer::forwardMsg(int sender_id, int recver_id, std::string msg) {
 }
 
 void ChatServer::saveMsg(int sender_id, int recver_id,std::string& msg) {
-	if(cur_chatmsg_idx >=chatMsgCountEachTable) {
+	message m(msg);
+	std::string str = m.getString("content");
+	if(cur_chatmsg_count >=chatMsgCountEachTable) {
 		if (mutex_.try_lock()) {
 			cur_chatmsg_count = 0;
 			++cur_chatmsg_idx;
 			db_.createChatMsgTable(cur_chatmsg_idx);
+			db_.updateStatusMsgIdx(cur_chatmsg_idx);
 			mutex_.unlock();
 		}else {
 			using namespace std::chrono_literals;
 			while (cur_chatmsg_idx >= chatMsgCountEachTable) {
-				std::this_thread::sleep_for(100ms);
+				std::this_thread::sleep_for(10ms);
 			}
 		}
 	}
 	int idx = cur_chatmsg_idx;
 	++cur_chatmsg_count;
-	db_.saveMsg(sender_id, recver_id, msg, idx,1);
+	db_.saveMsg(sender_id, recver_id, str, idx,1);
 }
 
 void ChatServer::recvMsg(int fd, std::string msg, Server* serv) {
@@ -203,14 +206,17 @@ void ChatServer::recvMsg(int fd, std::string msg, Server* serv) {
 		try {
 			message m(*it);
 			switch (m.getInt("type")) {
-			case 9:
-				forwardMsg(m.getInt("sender_id"), m.getInt("recver_id"), *it);
-				break;
 			case 3:
 				msgExec_friend(fd, m);
 				break;
+			case 7:
+				pullMsg(fd, m);
+				break;
 			case 8:
 				execUnsentMsg(socketMap_.getId(fd));
+				break;
+			case 9:
+				forwardMsg(m.getInt("sender_id"), m.getInt("recver_id"), *it);
 				break;
 			default:
 				msgExec_err(fd, "unknown kype!");
@@ -300,4 +306,19 @@ void ChatServer::friend_list(int id) {
 	m.add("friendGroup", std::move(friendGroup));
 	auto str = m.getString();
 	sendMsg(socketMap_.getFd(id), m.getString());
+}
+
+void ChatServer::pullMsg(int fd, message& m) {
+	int id = socketMap_.getId(fd);
+	auto result = db_.pullMsg(id, cur_chatmsg_idx);
+
+	while(result->next()) {
+		message msg;
+		msg.add("type", 7);
+		msg.add("seq_id", result->getInt64("seq_id"));
+		msg.add("sender_id", result->getInt64("user_id_from"));
+		msg.add("recver_id", result->getInt64("user_id_to"));
+		msg.add("content", result->getString("content"));
+		sendMsg(fd, msg.getString());
+	}
 }

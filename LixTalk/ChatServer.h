@@ -58,7 +58,7 @@ public:
 	void waitingFirstMsg(int fd, std::string msg, Server* serv);
 
 	void forwardMsg(int sender_id, int recver_id, std::string msg);
-
+	void pullMsg(int fd, message& m);
 	void recvMsg(int fd, std::string msg, Server* serv);
 
 	void sendMsg(const int fd,std::string msg) {

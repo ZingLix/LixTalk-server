@@ -1,4 +1,5 @@
 #include "DbConnector.h"
+#include "Setting.h"
 
 const char * DbConnector::DbName = "LixTalk_test";
 
@@ -23,14 +24,16 @@ void DbConnector::connect(std::string username, std::string password) {
 }
 
 int DbConnector::getMaxUserID() {
-	std::unique_ptr<sql::PreparedStatement> stmt(con->prepareStatement("SELECT count(*) c from user"));
+	std::unique_ptr<sql::PreparedStatement> stmt(
+		con->prepareStatement("SELECT count(*) c from user"));
 	std::unique_ptr<sql::ResultSet> res(stmt->executeQuery());
 	res->next();
 	return res->getInt("c");
 }
 
 int DbConnector::getChatMsgIdx() {
-	std::unique_ptr<sql::PreparedStatement> stmt(con->prepareStatement("SELECT curMsgIdx from status"));
+	std::unique_ptr<sql::PreparedStatement> stmt(
+		con->prepareStatement("SELECT curMsgIdx from status"));
 	std::unique_ptr<sql::ResultSet> res(stmt->executeQuery());
 	res->next();
 	return res->getInt("curMsgIdx");
@@ -51,7 +54,8 @@ std::shared_ptr<sql::ResultSet> DbConnector::getUser(std::string username) {
 }
 
 void DbConnector::addUser(std::string username, std::string password) {
-	sql::PreparedStatement* stmt = con->prepareStatement("INSERT INTO user(username,password) VALUES (?,?)");
+	sql::PreparedStatement* stmt = con->prepareStatement(
+		"INSERT INTO user(username,password) VALUES (?,?)");
 	stmt->setString(1, username);
 	stmt->setString(2, password);
 	stmt->executeUpdate();
@@ -59,7 +63,8 @@ void DbConnector::addUser(std::string username, std::string password) {
 }
 
 void DbConnector::addFriend(int userID_1, int userID_2) {
-	sql::PreparedStatement* stmt = con->prepareStatement("INSERT INTO friend(user_id_1,user_id_2) VALUES ("
+	sql::PreparedStatement* stmt = con->prepareStatement(
+		"INSERT INTO friend(user_id_1,user_id_2) VALUES ("
 		+ std::to_string(userID_1) + " , " + std::to_string(userID_2) + ")");
 	stmt->executeUpdate();
 	delete stmt;
@@ -70,9 +75,11 @@ void DbConnector::addOfflineMsg(int id, std::string msg) {
 }
 
 std::shared_ptr<std::vector<std::string>> DbConnector::getOfflineMsg(int id) {
-	redisReply* reply = static_cast<redisReply*>(redisCommand(redisCon, "LLEN OFFLINE_MSG_%d", id));
+	redisReply* reply = static_cast<redisReply*>(redisCommand(redisCon, 
+		"LLEN OFFLINE_MSG_%d", id));
 	auto length = reply->integer;
-	reply = static_cast<redisReply*>(redisCommand(redisCon, "LRANGE OFFLINE_MSG_%d 0 %d", id, length));
+	reply = static_cast<redisReply*>(redisCommand(redisCon, 
+		"LRANGE OFFLINE_MSG_%d 0 %d", id, length));
 	std::shared_ptr<std::vector<std::string>> ptr(new std::vector<std::string>());
 	for (int i = 0; i < length; i++) {
 		ptr->push_back(reply->element[i]->str);
@@ -168,8 +175,20 @@ void DbConnector::saveMsg(int sender_id, int recver_id, std::string& msg, int id
 	std::unique_ptr<sql::PreparedStatement> stmt(con->prepareStatement("insert into " + tableName +
 		"(user_id_from,user_id_to,type,content) values(" +
 		std::to_string(sender_id) + "," + std::to_string(recver_id) + "," +
-		std::to_string(type) + ",'" + msg + "')"));
-	stmt->executeUpdate();
+		std::to_string(type) + ",'" + msg + "');"));
+	stmt->execute();
+	stmt.reset(con->prepareStatement("SELECT LAST_INSERT_ID() id;"));
+	std::unique_ptr<sql::ResultSet> res(stmt->executeQuery());
+	res->next();
+	int seqid = res->getInt("id");
+	stmt.reset(con->prepareStatement("insert into userSeq_" + std::to_string(sender_id / userCountEachTable)+
+		"(user_id,record_table_idx,record_id) values("+std::to_string(sender_id)+","+
+		std::to_string(idx)+","+ std::to_string(seqid)+ ")"));
+	stmt->execute();
+	stmt.reset(con->prepareStatement("insert into userSeq_" + std::to_string(recver_id / userCountEachTable) +
+		"(user_id,record_table_idx,record_id) values(" + std::to_string(recver_id) + "," +
+		std::to_string(idx) + "," + std::to_string(seqid) + ")"));
+	stmt->execute();
 }
 
 DbConnector::~DbConnector() {
@@ -177,12 +196,26 @@ DbConnector::~DbConnector() {
 		delete con;
 }
 
-std::shared_ptr<sql::ResultSet> DbConnector::queryFriend(int id) {
+std::unique_ptr<sql::ResultSet> DbConnector::queryFriend(int id) {
 	sql::PreparedStatement* stmt = con->prepareStatement(
 		"SELECT user_id_1,user_id_2, group_id_in_1, group_id_in_1 \
 			from friend where user_id_1 = " + std::to_string(id) +
 		" or user_id_2 = " + std::to_string(id));
-	std::shared_ptr<sql::ResultSet> res(stmt->executeQuery());
+	std::unique_ptr<sql::ResultSet> res(stmt->executeQuery());
 	delete stmt;
 	return res;
+}
+
+std::unique_ptr<sql::ResultSet> DbConnector::pullMsg(int id, int chatHisIdx, int num) {
+	std::unique_ptr<sql::PreparedStatement> stmt(con->prepareStatement(
+		"select seq_id,user_id_from,user_id_to,type,content from userSeq_"+std::to_string(id/userCountEachTable)+
+		" ,chatHistory_"+std::to_string(chatHisIdx)+" where record_id=msg_id and record_table_idx="+
+		std::to_string(chatHisIdx)+ " and user_id="+std::to_string(id)+" order by seq_id desc limit 0,"+std::to_string(num)));
+	return std::unique_ptr<sql::ResultSet>(stmt->executeQuery());
+}
+
+void DbConnector::updateStatusMsgIdx(int idx) {
+	std::unique_ptr<sql::PreparedStatement> stmt(con->prepareStatement(
+		"update status set curMsgIdx = "+std::to_string(idx)));
+	stmt->executeUpdate();
 }
