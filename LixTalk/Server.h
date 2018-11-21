@@ -25,11 +25,11 @@ public:
 
 	void shutdown(int fd);
 
-private:
 	void handleNewConn();
 	void createNewChannel(int fd);
 	void handleRead(const int fd);
 
+private:
 	enum state{WAITING,RUNNING,CLOSED};
 
 	EventCallback defaultEventCb_;

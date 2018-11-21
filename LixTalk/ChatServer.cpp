@@ -6,8 +6,11 @@
 #include <iostream>
 
 ChatServer::ChatServer(in_port_t port): userMap_(),server_(port) {
-	server_.setNewConnCallback(std::bind(&ChatServer::onNewConn, this,
-	                                     std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+	server_.setNewConnCallback([this](int fd, const NetAddress& n, Server*s) mutable {
+		return this->onNewConn(fd, n, s);
+	});
+//	server_.setNewConnCallback(std::bind(&ChatServer::onNewConn, this,
+//	                                     std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 	server_.setCloseCallback([this](int id, Server* s) { this->logout(id); });
 }
 
@@ -46,8 +49,12 @@ void ChatServer::msgExec_login(int fd, message& msg) {
 
 		LOG_INFO << id << " login." ;
 		sendMsg(fd, m.getString());
-		server_.setMessageCallback(fd, std::bind(&ChatServer::recvMsg, this,
-			std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+		//server_.setMessageCallback(fd, std::bind(&ChatServer::recvMsg, this,
+		//	std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+		server_.setMessageCallback(fd, [this](int fd, std::string msg, Server* serv)
+		{
+			this->recvMsg(fd, msg, serv);
+		});
 	}
 
 }
@@ -113,8 +120,12 @@ void ChatServer::msgExec_err_fatal(int fd, std::string errMsg) {
 }
 
 bool ChatServer::onNewConn(int fd, const NetAddress& addr, Server* serv) {
-	server_.setMessageCallback(fd, std::bind(&ChatServer::waitingFirstMsg, this,
-	                                         std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+	//server_.setMessageCallback(fd, std::bind(&ChatServer::waitingFirstMsg, this,
+	//                                         std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+	server_.setMessageCallback(fd,[this](int fd, std::string msg, Server* serv)
+	{
+		this->waitingFirstMsg(fd, msg, serv);
+	});
 	return true;
 }
 

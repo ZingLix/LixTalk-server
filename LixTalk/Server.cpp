@@ -11,7 +11,8 @@ Server::Server(in_port_t port):state_(WAITING),addr_(port){
 	}
 	socket_ = std::make_shared<Socket>();
 	channel_ = std::make_shared<Channel>(&*event_loop_,*socket_);
-	channel_->setReadCallback(std::bind(&Server::handleNewConn, this));
+//	channel_->setReadCallback(std::bind(&Server::handleNewConn, this));
+	channel_->setReadCallback([this](const int) {this->handleNewConn(); }); 
 }
 
 void Server::start() {
@@ -61,7 +62,8 @@ void Server::handleNewConn() {
 void Server::createNewChannel(int fd) {
 	std::shared_ptr<Channel> ptr = std::make_shared<Channel>(&*event_loop_, fd);
 	channelMap_.insert(std::make_pair(fd, ptr));
-	ptr->setReadCallback(std::bind(&Server::handleRead,this, std::placeholders::_1));
+//	ptr->setReadCallback(std::bind(&Server::handleRead,this, std::placeholders::_1));
+	ptr->setReadCallback([this](const int fd) {this->handleRead(fd); });
 	ptr->enableReading();
 	BufferMap_.insert(std::make_pair(fd, std::vector<char>()));
 	messageMap_.insert(std::make_pair(fd, MessageCallback_));
