@@ -7,8 +7,8 @@
 #include <cppconn/prepared_statement.h>
 #include <cppconn/exception.h>
 #include <memory>
+#include <vector>
 #include <hiredis/hiredis.h>
-#include "LogInfo.h"
 
 class DbConnector {
 public:

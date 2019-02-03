@@ -1,17 +1,17 @@
 #include "ChatServer.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
-#include "LogInfo.h"
+#include "psyche/psyche.h"
 #include "Setting.h"
 #include <iostream>
+#include <functional>
 
-ChatServer::ChatServer(in_port_t port): userMap_(),server_(port) {
-	server_.setNewConnCallback([this](int fd, const NetAddress& n, Server*s) mutable {
-		return this->onNewConn(fd, n, s);
-	});
-//	server_.setNewConnCallback(std::bind(&ChatServer::onNewConn, this,
-//	                                     std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-	server_.setCloseCallback([this](int id, Server* s) { this->logout(id); });
+using namespace std::placeholders;
+
+ChatServer::ChatServer(in_port_t port): server_(port) {
+	server_.setNewConnCallback(std::bind(&ChatServer::onNewConn, this, _1));
+	server_.setReadCallback(std::bind(&ChatServer::waitingFirstMsg, this, _1,_2));
+	server_.setCloseCallback(std::bind(&ChatServer::logout,this,_1));
 }
 
 void ChatServer::start() {
@@ -32,13 +32,14 @@ void ChatServer::start() {
 	server_.start();
 }
 
-void ChatServer::msgExec_login(int fd, message& msg) {
+void ChatServer::msgExec_login(psyche::Connection conn, message& msg) {
 	int id = checkLoginInfo(msg);
 	if(id==-1) {
-		msgExec_err_fatal(fd, "Incorrect username or password");
+		msgExec_err_fatal(conn, "Incorrect username or password");
 	}else {
-		userMap_.insert(std::make_pair(id, user(fd)));
-		socketMap_.insert(fd, id);
+		user_.insert(std::make_pair(id, conn));
+		//userMap_.insert(std::make_pair(id, user(conn)));
+		//socketMap_.insert(conn, id);
 
 		message m;
 
@@ -48,13 +49,13 @@ void ChatServer::msgExec_login(int fd, message& msg) {
 		m.add("recver_id", id);
 
 		LOG_INFO << id << " login." ;
-		sendMsg(fd, m.getString());
-		//server_.setMessageCallback(fd, std::bind(&ChatServer::recvMsg, this,
+		sendMsg(conn, m.getString());
+		//server_.setMessageCallback(conn, std::bind(&ChatServer::recvMsg, this,
 		//	std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-		server_.setMessageCallback(fd, [this](int fd, std::string msg, Server* serv)
-		{
-			this->recvMsg(fd, msg, serv);
-		});
+		//server_.setMessageCallback(conn, [this](psyche::Connection conn, std::string msg, Server* serv)
+		//{
+		//	this->recvMsg(conn, msg, serv);
+		//});
 	}
 
 }
@@ -62,7 +63,7 @@ void ChatServer::msgExec_login(int fd, message& msg) {
 void ChatServer::execUnsentMsg(int id) {
 	auto ptr = db_.getOfflineMsg(id);
 	for(auto it=ptr->begin();it!=ptr->end();++it) {
-		sendMsg(socketMap_.getFd(id), *it);
+		sendMsg(user_[id], *it);
 	}
 }
 
@@ -82,13 +83,15 @@ int ChatServer::checkLoginInfo(message& msg) {
 	}
 }
 
-void ChatServer::logout(int fd) {
-	auto id = socketMap_.getId(fd);
+void ChatServer::logout(psyche::Connection conn) {
+	auto it = con_to_id_.find(conn);
+	auto id = it->second;
 	if(id!=-1) LOG_INFO << id << " offline.";
-	socketMap_.removeByFd(fd);
+	con_to_id_.erase(it);
+	user_.erase(id);
 }
 
-void ChatServer::msgExec_register(int fd, message& msg) {
+void ChatServer::msgExec_register(psyche::Connection conn, message& msg) {
 	std::string username = msg.getString("username");
 	std::string password = msg.getString("password");
 	db_.addUser(username, password);
@@ -110,27 +113,26 @@ void ChatServer::msgExec_register(int fd, message& msg) {
 	rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
 	doc.Accept(writer);
 	std::string m = buffer.GetString();
-	server_.send(fd, m);
-	Socket::shutdown(fd);
+	conn.send(m);
+	//TODO close the connection
+	//Socket::shutdown(conn);
 }
 
-void ChatServer::msgExec_err_fatal(int fd, std::string errMsg) {
-	msgExec_err(fd, errMsg);
-	server_.shutdown(fd);
+void ChatServer::msgExec_err_fatal(psyche::Connection conn, std::string errMsg) {
+	msgExec_err(conn, errMsg);
+	//TODO close the connection
+	//Socket::shutdown(conn);
 }
 
-bool ChatServer::onNewConn(int fd, const NetAddress& addr, Server* serv) {
-	//server_.setMessageCallback(fd, std::bind(&ChatServer::waitingFirstMsg, this,
+bool ChatServer::onNewConn(psyche::Connection conn) {
+	//server_.setMessageCallback(conn, std::bind(&ChatServer::waitingFirstMsg, this,
 	//                                         std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-	server_.setMessageCallback(fd,[this](int fd, std::string msg, Server* serv)
-	{
-		this->waitingFirstMsg(fd, msg, serv);
-	});
+	vistor_.insert(conn);
 	return true;
 }
 
-void ChatServer::msgExec_err(int fd, std::string errMsg) {
-	LOG_INFO << fd << ": " << errMsg;
+void ChatServer::msgExec_err(psyche::Connection conn, std::string errMsg) {
+	LOG_INFO << conn.peer_endpoint().to_string() << ": " << errMsg;
 	rapidjson::Document doc;
 	rapidjson::MemoryPoolAllocator<>& allocator = doc.GetAllocator();
 	doc.SetObject();
@@ -144,42 +146,45 @@ void ChatServer::msgExec_err(int fd, std::string errMsg) {
 	rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
 	doc.Accept(writer);
 	std::string msg = buffer.GetString();
-	server_.send(fd, msg);
+	conn.send(msg);
 }
 
-void ChatServer::waitingFirstMsg(int fd, std::string msg, Server* serv) {
+void ChatServer::waitingFirstMsg(psyche::Connection conn, psyche::Buffer buff) {
 	try {
-		message m(msg);
+		message m(buff.retrieveAll());
 
 		if (m.getInt("recver_id") != 0) {
-			serv->send(fd, "Bad request!");
-			serv->shutdown(fd);
+			conn.send("Bad request!");
+			//TODO close the connection
+			//serv->send(conn, "Bad request!");
+			//serv->shutdown(conn);
 		}
 		else {
 			switch (m.getInt("type")) {
 			case 0: //login request
-				msgExec_login(fd, m);
+				msgExec_login(conn, m);
 				break;
 			case 1: //register request
-				msgExec_register(fd, m);
+				msgExec_register(conn, m);
 				break;
 
 			default:
-				msgExec_err(fd, "unknown type");
+				msgExec_err(conn, "unknown type");
 			}
 		}
 	}
 	catch (std::invalid_argument) {
-		msgExec_err_fatal(fd, "Bad Request");
+		msgExec_err_fatal(conn, "Bad Request");
 	}
 }
 
 void ChatServer::forwardMsg(int sender_id, int recver_id, std::string msg) {
 	std::string loginfo = "receive new message from " + std::to_string(sender_id) + " to " 
 		+ std::to_string(recver_id) +  " message:" + msg ;
-	auto fd = socketMap_.getFd(recver_id);
-	if (fd!=-1) {
-		sendMsg(fd, msg);
+	auto it = user_.find(recver_id);
+	//auto conn = user_[recver_id];
+	if (it!=user_.end()) {
+		sendMsg(it->second, msg);
 		LOG_INFO<<loginfo << " forwarded";
 	}else {
 		db_.addOfflineMsg(recver_id, msg);
@@ -210,31 +215,31 @@ void ChatServer::saveMsg(int sender_id, int recver_id,std::string& msg) {
 	db_.saveMsg(sender_id, recver_id, str, idx,1);
 }
 
-void ChatServer::recvMsg(int fd, std::string msg, Server* serv) {
-	auto ptr= split(msg);
+void ChatServer::recvMsg(psyche::Connection conn, psyche::Buffer buffer) {
+	auto ptr= split(buffer.retrieveAll());
 
 	for(auto it=ptr->begin();it!=ptr->end();++it) {
 		try {
 			message m(*it);
 			switch (m.getInt("type")) {
 			case 3:
-				msgExec_friend(fd, m);
+				msgExec_friend(conn, m);
 				break;
 			case 7:
-				pullMsg(fd, m);
+				pullMsg(conn, m);
 				break;
 			case 8:
-				execUnsentMsg(socketMap_.getId(fd));
+				execUnsentMsg(con_to_id_[conn]);
 				break;
 			case 9:
 				forwardMsg(m.getInt("sender_id"), m.getInt("recver_id"), *it);
 				break;
 			default:
-				msgExec_err(fd, "unknown kype!");
+				msgExec_err(conn, "unknown kype!");
 			}
 		}
 		catch (std::invalid_argument) {
-			msgExec_err(fd, "Bad Request");
+			msgExec_err(conn, "Bad Request");
 		}
 	}
 
@@ -251,11 +256,11 @@ std::shared_ptr<std::vector<std::string>> ChatServer::split(const std::string& m
 	return ptr;
 }
 
-void ChatServer::msgExec_friend(int fd, message& msg) {
+void ChatServer::msgExec_friend(psyche::Connection conn, message& msg) {
 	std::string m = msg.getString();
 	switch (msg.getInt("code")) {
 		case 1:
-			friend_request(socketMap_.getId(fd), msg.getInt("recver_id"),msg.getString("content"));
+			friend_request(con_to_id_[conn], msg.getInt("recver_id"),msg.getString("content"));
 			break;
 		case 2:
 			friend_accepted(msg.getInt("sender_id"), msg.getInt("recver_id"));
@@ -276,7 +281,7 @@ void ChatServer::friend_request(int sender_id, int recver_id,std::string content
 	m.add("sender_id", sender_id);
 	m.add("recver_id", recver_id);
 	m.add("content", content);
-	sendMsg(socketMap_.getFd(recver_id), m.getString());
+	sendMsg(user_[recver_id], m.getString());
 }
 
 void ChatServer::friend_accepted(int user1_id, int user2_id) {
@@ -285,7 +290,7 @@ void ChatServer::friend_accepted(int user1_id, int user2_id) {
 	m.add("type", 3);
 	m.add("code", 2);
 	m.add("recver_id", user2_id);
-	sendMsg(socketMap_.getFd(user1_id), m.getString());
+	sendMsg(user_[user1_id], m.getString());
 }
 
 void ChatServer::friend_refused(int user1_id, int user2_id) {
@@ -293,7 +298,7 @@ void ChatServer::friend_refused(int user1_id, int user2_id) {
 	m.add("type", 3);
 	m.add("code", 3);
 	m.add("recver_id", user2_id);
-	sendMsg(socketMap_.getFd(user1_id), m.getString());
+	sendMsg(user_[user1_id], m.getString());
 }
 
 void ChatServer::friend_list(int id) {
@@ -316,11 +321,11 @@ void ChatServer::friend_list(int id) {
 	m.add("friendID", std::move(friendId));
 	m.add("friendGroup", std::move(friendGroup));
 	auto str = m.getString();
-	sendMsg(socketMap_.getFd(id), m.getString());
+	sendMsg(user_[id], m.getString());
 }
 
-void ChatServer::pullMsg(int fd, message& m) {
-	int id = socketMap_.getId(fd);
+void ChatServer::pullMsg(psyche::Connection conn, message& m) {
+	int id = con_to_id_[conn];
 	auto result = db_.pullMsg(id, cur_chatmsg_idx);
 
 	while(result->next()) {
@@ -330,6 +335,6 @@ void ChatServer::pullMsg(int fd, message& m) {
 		msg.add("sender_id", result->getInt64("user_id_from"));
 		msg.add("recver_id", result->getInt64("user_id_to"));
 		msg.add("content", result->getString("content"));
-		sendMsg(fd, msg.getString());
+		sendMsg(conn, msg.getString());
 	}
 }
