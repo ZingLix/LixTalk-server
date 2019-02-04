@@ -11,28 +11,6 @@ matrix:
           sources:
             - ubuntu-toolchain-r-test
           packages:
-            - g++-5
-      env:
-         - MATRIX_EVAL="CC=gcc-5 && CXX=g++-5"
-
-    # works on Precise and Trusty
-    - os: linux
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-          packages:
-            - g++-6
-      env:
-        - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
-
-    # works on Precise and Trusty
-    - os: linux
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-          packages:
             - g++-7
       env:
         - MATRIX_EVAL="CC=gcc-7 && CXX=g++-7"
@@ -70,11 +48,11 @@ before_install:
     - sudo apt-get update
     - sudo apt-get install libhiredis-dev
     - sudo apt-get install libmysqlcppconn-dev
-	- cd ~
-	- git clone git@github.com:ZingLix/psyche.git
-	- cd psyche
-	- cmake .
-	- make && sudo make install
+    - cd ~
+    - git clone git@github.com:ZingLix/psyche.git
+    - cd psyche
+    - cmake .
+    - make && sudo make install
     - eval "${MATRIX_EVAL}"
 script: cmake . && make
 
