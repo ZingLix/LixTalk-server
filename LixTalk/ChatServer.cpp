@@ -63,7 +63,7 @@ void ChatServer::msgExec_login(psyche::Connection conn, message& msg) {
 void ChatServer::execUnsentMsg(int id) {
 	auto ptr = db_.getOfflineMsg(id);
 	for(auto it=ptr->begin();it!=ptr->end();++it) {
-		sendMsg(user_[id], *it);
+		sendMsg(user_.find(id)->second, *it);
 	}
 }
 
@@ -281,7 +281,7 @@ void ChatServer::friend_request(int sender_id, int recver_id,std::string content
 	m.add("sender_id", sender_id);
 	m.add("recver_id", recver_id);
 	m.add("content", content);
-	sendMsg(user_[recver_id], m.getString());
+	sendMsg(user_.find(recver_id)->second, m.getString());
 }
 
 void ChatServer::friend_accepted(int user1_id, int user2_id) {
@@ -290,7 +290,7 @@ void ChatServer::friend_accepted(int user1_id, int user2_id) {
 	m.add("type", 3);
 	m.add("code", 2);
 	m.add("recver_id", user2_id);
-	sendMsg(user_[user1_id], m.getString());
+	sendMsg(user_.find(user1_id)->second, m.getString());
 }
 
 void ChatServer::friend_refused(int user1_id, int user2_id) {
@@ -298,7 +298,7 @@ void ChatServer::friend_refused(int user1_id, int user2_id) {
 	m.add("type", 3);
 	m.add("code", 3);
 	m.add("recver_id", user2_id);
-	sendMsg(user_[user1_id], m.getString());
+	sendMsg(user_.find(user1_id)->second, m.getString());
 }
 
 void ChatServer::friend_list(int id) {
@@ -321,7 +321,7 @@ void ChatServer::friend_list(int id) {
 	m.add("friendID", std::move(friendId));
 	m.add("friendGroup", std::move(friendGroup));
 	auto str = m.getString();
-	sendMsg(user_[id], m.getString());
+	sendMsg(user_.find(id)->second, m.getString());
 }
 
 void ChatServer::pullMsg(psyche::Connection conn, message& m) {
