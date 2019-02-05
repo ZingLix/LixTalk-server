@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.6)
 project(LixTalk)
-add_definitions(-std=c++14)
+add_definitions(-std=c++17)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ../build/)
 file(GLOB src "*.cpp")
 add_executable(LixTalk ${src})

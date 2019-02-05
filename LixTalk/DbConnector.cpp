@@ -1,6 +1,6 @@
 #include "DbConnector.h"
 #include "Setting.h"
-#include <psyche/psyche.h>
+#include "psyche/psyche.h"
 
 const char * DbConnector::DbName = "LixTalk_test";
 

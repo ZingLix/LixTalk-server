@@ -78,16 +78,10 @@ public:
 private:
 	std::shared_ptr<std::vector<std::string>> split(const std::string& str);
 
-	struct l {
-		bool operator()(const psyche::Connection& a, const psyche::Connection& b) const {
-			return a.conn < b.conn;
-		}
-	};
-
 	std::mutex mutex_;
-	std::set<psyche::Connection,l> vistor_;
+	std::set<psyche::Connection> vistor_;
 	std::map<int, psyche::Connection> user_;
-	std::map<psyche::Connection, int,l> con_to_id_;
+	std::map<psyche::Connection, int> con_to_id_;
 	int cur_user_count;
 	int cur_chatmsg_idx;
 	int cur_chatmsg_count;

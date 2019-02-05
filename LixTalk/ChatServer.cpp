@@ -38,6 +38,8 @@ void ChatServer::msgExec_login(psyche::Connection conn, message& msg) {
 		msgExec_err_fatal(conn, "Incorrect username or password");
 	}else {
 		user_.insert(std::make_pair(id, conn));
+		con_to_id_.insert(std::make_pair(conn, id));
+		vistor_.erase(conn);
 		//userMap_.insert(std::make_pair(id, user(conn)));
 		//socketMap_.insert(conn, id);
 
@@ -50,6 +52,7 @@ void ChatServer::msgExec_login(psyche::Connection conn, message& msg) {
 
 		LOG_INFO << id << " login." ;
 		sendMsg(conn, m.getString());
+		conn.setReadCallback(std::bind(&ChatServer::recvMsg, this, _1, _2));
 		//server_.setMessageCallback(conn, std::bind(&ChatServer::recvMsg, this,
 		//	std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 		//server_.setMessageCallback(conn, [this](psyche::Connection conn, std::string msg, Server* serv)
@@ -85,10 +88,12 @@ int ChatServer::checkLoginInfo(message& msg) {
 
 void ChatServer::logout(psyche::Connection conn) {
 	auto it = con_to_id_.find(conn);
-	auto id = it->second;
-	if(id!=-1) LOG_INFO << id << " offline.";
-	con_to_id_.erase(it);
-	user_.erase(id);
+	if (it != con_to_id_.end()) {
+		auto id = it->second;
+		if (id != -1) LOG_INFO << id << " offline.";
+		con_to_id_.erase(it);
+		user_.erase(id);
+	}
 }
 
 void ChatServer::msgExec_register(psyche::Connection conn, message& msg) {
@@ -115,13 +120,13 @@ void ChatServer::msgExec_register(psyche::Connection conn, message& msg) {
 	std::string m = buffer.GetString();
 	conn.send(m);
 	//TODO close the connection
-	//Socket::shutdown(conn);
+	conn.close();
 }
 
 void ChatServer::msgExec_err_fatal(psyche::Connection conn, std::string errMsg) {
 	msgExec_err(conn, errMsg);
 	//TODO close the connection
-	//Socket::shutdown(conn);
+	conn.close();
 }
 
 bool ChatServer::onNewConn(psyche::Connection conn) {
@@ -156,6 +161,7 @@ void ChatServer::waitingFirstMsg(psyche::Connection conn, psyche::Buffer buff) {
 		if (m.getInt("recver_id") != 0) {
 			conn.send("Bad request!");
 			//TODO close the connection
+			conn.close();
 			//serv->send(conn, "Bad request!");
 			//serv->shutdown(conn);
 		}

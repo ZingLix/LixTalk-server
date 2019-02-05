@@ -1,7 +1,7 @@
 #include "CurThread.h"
 #include <unistd.h>
 #include "ChatServer.h"
-#include <psyche/psyche.h>
+#include "psyche/psyche.h"
 #include <functional>
 
 int main() {

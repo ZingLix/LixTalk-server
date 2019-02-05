@@ -53,6 +53,9 @@ before_install:
     - cd psyche
     - cmake .
     - make && sudo make install
+    - cd ~
+    - git clone https://github.com/Tencent/rapidjson.git
+    - sudo cp -r include /usr/include
     - eval "${MATRIX_EVAL}"
 script: cmake . && make
 
