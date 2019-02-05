@@ -57,9 +57,9 @@ before_install:
     - cd ~
     - git clone https://github.com/Tencent/rapidjson.git
     - cd rapidjson
-    - sudo cp -r include /usr/include
+    - sudo cp -r include /usr
 
-script: cmake . && make
+script: cd $TRAVIS_BUILD_DIR && cmake . && make
 
 notifications:
   email: false
